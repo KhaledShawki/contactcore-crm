@@ -1,0 +1,77 @@
+# Copyright (c) Khaled Shawki. All rights reserved.
+
+spring:
+  application:
+    name: contactcore-crm
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/contactcore}
+    username: ${SPRING_DATASOURCE_USERNAME:contactcore}
+    password: ${SPRING_DATASOURCE_PASSWORD:contactcore}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: ${CONTACTCORE_FLYWAY_LOCATIONS:classpath:db/migration}
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 20MB
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+contactcore:
+  admin:
+    username: ${CONTACTCORE_ADMIN_USERNAME:admin}
+    email: ${CONTACTCORE_ADMIN_EMAIL:admin@contactcore.local}
+    password: ${CONTACTCORE_ADMIN_PASSWORD:change-this-password}
+    display-name: ${CONTACTCORE_ADMIN_DISPLAY_NAME:ContactCore Admin}
+  cors:
+    allowed-origins: ${CONTACTCORE_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8080}
+  security:
+    jwt:
+      issuer: ${CONTACTCORE_JWT_ISSUER:contactcore-crm}
+      secret: ${CONTACTCORE_JWT_SECRET:change-this-development-secret-to-at-least-32-characters}
+      ttl-minutes: ${CONTACTCORE_JWT_TTL_MINUTES:480}
+  s3:
+    endpoint: ${CONTACTCORE_S3_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${CONTACTCORE_S3_PUBLIC_ENDPOINT:http://localhost:9000}
+    region: ${CONTACTCORE_S3_REGION:eu-central-1}
+    bucket: ${CONTACTCORE_S3_BUCKET:contactcore-files}
+    access-key: ${CONTACTCORE_S3_ACCESS_KEY:contactcore}
+    secret-key: ${CONTACTCORE_S3_SECRET_KEY:contactcore-secret}
+    path-style-access: ${CONTACTCORE_S3_PATH_STYLE_ACCESS:true}
+  file-scanning:
+    enabled: ${CONTACTCORE_FILE_SCANNING_ENABLED:false}
+    host: ${CONTACTCORE_FILE_SCANNING_HOST:localhost}
+    port: ${CONTACTCORE_FILE_SCANNING_PORT:3310}
+    connect-timeout-ms: ${CONTACTCORE_FILE_SCANNING_CONNECT_TIMEOUT_MS:3000}
+    read-timeout-ms: ${CONTACTCORE_FILE_SCANNING_READ_TIMEOUT_MS:30000}
+    chunk-size-bytes: ${CONTACTCORE_FILE_SCANNING_CHUNK_SIZE_BYTES:8192}
+  upload-policy:
+    max-profile-image-bytes: ${CONTACTCORE_UPLOAD_MAX_PROFILE_IMAGE_BYTES:5242880}
+    max-business-document-bytes: ${CONTACTCORE_UPLOAD_MAX_BUSINESS_DOCUMENT_BYTES:15728640}
+
+  assistant:
+    enabled: ${CONTACTCORE_ASSISTANT_ENABLED:true}
+    provider: ${CONTACTCORE_ASSISTANT_PROVIDER:noop}
+    model: ${CONTACTCORE_ASSISTANT_MODEL:contactcore-noop}
+    endpoint: ${CONTACTCORE_ASSISTANT_ENDPOINT:}
+    api-key: ${CONTACTCORE_ASSISTANT_API_KEY:}
+    timeout-ms: ${CONTACTCORE_ASSISTANT_TIMEOUT_MS:20000}
+    max-context-chars: ${CONTACTCORE_ASSISTANT_MAX_CONTEXT_CHARS:12000}
+    max-results: ${CONTACTCORE_ASSISTANT_MAX_RESULTS:20}
+    rate-limit-per-minute: ${CONTACTCORE_ASSISTANT_RATE_LIMIT_PER_MINUTE:10}

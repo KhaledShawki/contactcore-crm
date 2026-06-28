@@ -1,0 +1,22 @@
+// Copyright (c) Khaled Shawki. All rights reserved.
+
+package com.contactcore.assistant.application.planning;
+
+public enum AssistantIntent {
+    GREETING,
+    ASSISTANT_IDENTITY,
+    ASSISTANT_CAPABILITIES,
+    UNCLEAR_REQUEST,
+    BUSINESS_PARTNER_EXISTENCE,
+    BUSINESS_PARTNER_SEARCH,
+    BUSINESS_PARTNER_DETAILS,
+    LEADS_MISSING_CONTACTS,
+    LEADS_NEED_FOLLOW_UP,
+    MARKETING_PERFORMANCE,
+    CRM_SUMMARY,
+    STATUS_BREAKDOWN,
+    CONTACT_COVERAGE,
+    RECENT_RECORDS,
+    LEAD_PIPELINE,
+    UNSUPPORTED
+}

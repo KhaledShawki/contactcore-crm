@@ -1,0 +1,5 @@
+# Copyright (c) Khaled Shawki. All rights reserved.
+
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/demo

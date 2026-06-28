@@ -1,0 +1,113 @@
+# Copyright (c) Khaled Shawki. All rights reserved.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-contactcore}
+      POSTGRES_USER: ${POSTGRES_USER:-contactcore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-contactcore}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-contactcore} -d ${POSTGRES_DB:-contactcore}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${CONTACTCORE_S3_ACCESS_KEY:-contactcore}
+      MINIO_ROOT_PASSWORD: ${CONTACTCORE_S3_SECRET_KEY:-contactcore-secret}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  clamav:
+    image: clamav/clamav-debian:stable
+    ports:
+      - "${CONTACTCORE_FILE_SCANNING_HOST_PORT:-3310}:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api-runtime
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-contactcore}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-contactcore}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-contactcore}
+      CONTACTCORE_ADMIN_USERNAME: ${CONTACTCORE_ADMIN_USERNAME:-admin}
+      CONTACTCORE_ADMIN_EMAIL: ${CONTACTCORE_ADMIN_EMAIL:-admin@contactcore.local}
+      CONTACTCORE_ADMIN_PASSWORD: ${CONTACTCORE_ADMIN_PASSWORD:-change-this-password}
+      CONTACTCORE_ADMIN_DISPLAY_NAME: ${CONTACTCORE_ADMIN_DISPLAY_NAME:-ContactCore Admin}
+      CONTACTCORE_JWT_ISSUER: ${CONTACTCORE_JWT_ISSUER:-contactcore-crm}
+      CONTACTCORE_JWT_SECRET: ${CONTACTCORE_JWT_SECRET:-change-this-development-secret-to-at-least-32-characters}
+      CONTACTCORE_JWT_TTL_MINUTES: ${CONTACTCORE_JWT_TTL_MINUTES:-480}
+      CONTACTCORE_S3_ENDPOINT: ${CONTACTCORE_S3_ENDPOINT:-http://minio:9000}
+      CONTACTCORE_S3_PUBLIC_ENDPOINT: ${CONTACTCORE_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      CONTACTCORE_S3_REGION: ${CONTACTCORE_S3_REGION:-eu-central-1}
+      CONTACTCORE_S3_BUCKET: ${CONTACTCORE_S3_BUCKET:-contactcore-files}
+      CONTACTCORE_S3_ACCESS_KEY: ${CONTACTCORE_S3_ACCESS_KEY:-contactcore}
+      CONTACTCORE_S3_SECRET_KEY: ${CONTACTCORE_S3_SECRET_KEY:-contactcore-secret}
+      CONTACTCORE_S3_PATH_STYLE_ACCESS: ${CONTACTCORE_S3_PATH_STYLE_ACCESS:-true}
+      CONTACTCORE_FILE_SCANNING_ENABLED: ${CONTACTCORE_FILE_SCANNING_ENABLED:-true}
+      CONTACTCORE_FILE_SCANNING_HOST: ${CONTACTCORE_FILE_SCANNING_HOST:-clamav}
+      CONTACTCORE_FILE_SCANNING_PORT: ${CONTACTCORE_FILE_SCANNING_PORT:-3310}
+      CONTACTCORE_FILE_SCANNING_CONNECT_TIMEOUT_MS: ${CONTACTCORE_FILE_SCANNING_CONNECT_TIMEOUT_MS:-3000}
+      CONTACTCORE_FILE_SCANNING_READ_TIMEOUT_MS: ${CONTACTCORE_FILE_SCANNING_READ_TIMEOUT_MS:-30000}
+      CONTACTCORE_FILE_SCANNING_CHUNK_SIZE_BYTES: ${CONTACTCORE_FILE_SCANNING_CHUNK_SIZE_BYTES:-8192}
+      CONTACTCORE_UPLOAD_MAX_PROFILE_IMAGE_BYTES: ${CONTACTCORE_UPLOAD_MAX_PROFILE_IMAGE_BYTES:-5242880}
+      CONTACTCORE_UPLOAD_MAX_BUSINESS_DOCUMENT_BYTES: ${CONTACTCORE_UPLOAD_MAX_BUSINESS_DOCUMENT_BYTES:-15728640}
+      CONTACTCORE_CORS_ALLOWED_ORIGINS: ${CONTACTCORE_CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8080}
+      CONTACTCORE_ASSISTANT_ENABLED: ${CONTACTCORE_ASSISTANT_ENABLED:-true}
+      CONTACTCORE_ASSISTANT_PROVIDER: ${CONTACTCORE_ASSISTANT_PROVIDER:-noop}
+      CONTACTCORE_ASSISTANT_MODEL: ${CONTACTCORE_ASSISTANT_MODEL:-contactcore-noop}
+      CONTACTCORE_ASSISTANT_ENDPOINT: ${CONTACTCORE_ASSISTANT_ENDPOINT:-}
+      CONTACTCORE_ASSISTANT_API_KEY: ${CONTACTCORE_ASSISTANT_API_KEY:-}
+      CONTACTCORE_ASSISTANT_TIMEOUT_MS: ${CONTACTCORE_ASSISTANT_TIMEOUT_MS:-60000}
+      CONTACTCORE_ASSISTANT_MAX_CONTEXT_CHARS: ${CONTACTCORE_ASSISTANT_MAX_CONTEXT_CHARS:-12000}
+      CONTACTCORE_ASSISTANT_MAX_RESULTS: ${CONTACTCORE_ASSISTANT_MAX_RESULTS:-20}
+      CONTACTCORE_ASSISTANT_RATE_LIMIT_PER_MINUTE: ${CONTACTCORE_ASSISTANT_RATE_LIMIT_PER_MINUTE:-10}
+    ports:
+      - "${CONTACTCORE_API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      clamav:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web-runtime
+      args:
+        VITE_API_BASE_URL: /api
+    ports:
+      - "${CONTACTCORE_WEB_PORT:-5173}:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  minio_data:
+  clamav_data:

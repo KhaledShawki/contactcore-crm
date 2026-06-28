@@ -1,0 +1,93 @@
+# Copyright (c) Khaled Shawki. All rights reserved.
+
+# Operating system and archive metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+__MACOSX/
+._*
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+apps/**/.github/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Java / Maven
+apps/api/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+.mvn/timing.properties
+
+# Node / Vite / React
+node_modules/
+dist/
+build/
+coverage/
+.nyc_output/
+.vite/
+*.tsbuildinfo
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.vite/
+apps/web/coverage/
+apps/web/.nyc_output/
+apps/web/tsconfig.tsbuildinfo
+apps/web/*.tsbuildinfo
+
+# Cypress and test artifacts
+apps/web/cypress/screenshots/
+apps/web/cypress/videos/
+apps/web/cypress/downloads/
+apps/web/playwright-report/
+apps/web/test-results/
+
+# Docker and local runtime state
+postgres_data/
+minio_data/
+clamav_data/
+data/
+.tmp/
+tmp/
+
+# Generated exports and local artifacts
+*.xlsx
+*.xls
+*.csv
+*.zip
+*.patch
+
+# Local AI/model artifacts
+models/
+*.gguf
+*.safetensors
+*.bin
