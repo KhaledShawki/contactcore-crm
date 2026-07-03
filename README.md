@@ -473,3 +473,58 @@ Recommended portfolio assets:
 - `.env.example` is safe to commit and documents the expected settings.
 - Sample seed data is intended for local development.
 - Uploaded files are stored outside the repository through S3-compatible storage.
+
+## CRM connector architecture
+
+ContactCore can run against external CRM backends through a connector layer. ContactCore IAM remains the primary authentication and authorization boundary. Users sign in to ContactCore first, then select an allowed CRM connector instance. When an external connector session is active, business-partner list and detail screens read from the selected connector instead of the local ContactCore `business_partner` tables.
+
+The first connector implementation is SAP Business One Service Layer. It is read-only in this release and supports SAP Business Partner lookup through connector-neutral endpoints:
+
+```text
+GET    /api/connectors/instances
+GET    /api/connectors/session
+POST   /api/connectors/session
+DELETE /api/connectors/session
+GET    /api/connectors/business-partners?q=&type=&page=&size=&sort=
+GET    /api/connectors/business-partners/{externalId}
+```
+
+Internally the connector layer now uses a connector-neutral Business Partner model with identity, classification, status, contact points, addresses, contact persons, financial profile, commercial profile, transaction summary placeholders, and source references. SAP B1 `BusinessPartners` records are mapped into this Business Partner model by the SAP adapter; raw SAP DTOs are not exposed to the frontend or assistant.
+
+The SAP B1 adapter is split into resource gateways and a transport-only Service Layer client port. `SapB1ServiceLayerClient` is the resource-neutral client contract, and `DefaultSapB1ServiceLayerClient` is the Spring-managed transport adapter that owns HTTP calls, login/logout, cookies, error mapping, and JSON serialization. `SapB1BusinessPartnerGateway` owns the SAP `BusinessPartners` resource path/query construction. `SapB1BusinessPartnerMapper` maps SAP fields into connector Business Partner summaries/details. This prevents the Service Layer client from becoming a large resource-specific class as Items, activities, orders, invoices, and payments are added later.
+
+SAP B1 credentials and Service Layer cookies are never sent to the browser. The browser receives only connector status metadata. The backend stores the active SAP session in memory per ContactCore user. SAP passwords are used only for the login request and are not persisted.
+
+Connector instances are configured server-side in `crm_connector_instance`. User access is granted through `crm_connector_user_access`. A SAP B1 connector instance uses JSON configuration like:
+
+```json
+{
+  "serviceLayerBaseUrl": "https://sap-server:50000/b1s/v2",
+  "companyDb": "SBODEMO_DE",
+  "timeoutMs": 30000
+}
+```
+
+Example setup for a development database:
+
+```sql
+insert into crm_connector_instance (type, display_name, environment, config_json, enabled)
+values (
+  'SAP_B1',
+  'SAP B1 Demo',
+  'TEST',
+  '{"serviceLayerBaseUrl":"https://sap-server:50000/b1s/v2","companyDb":"SBODEMO_DE","timeoutMs":30000}',
+  true
+);
+
+insert into crm_connector_user_access (user_id, connector_instance_id, can_read_business_partners, enabled)
+select user_account.id, connector.id, true, true
+from app_user user_account
+cross join crm_connector_instance connector
+where user_account.username = 'admin'
+  and connector.display_name = 'SAP B1 Demo';
+```
+
+The assistant remains read-only and evidence-gated. Business Partner search and detail requests use the active CRM connector when one is connected. If no connector is active, the existing local ContactCore CRM tools continue to serve local data.
+
+The Business Partner model is intentionally broader than the first SAP B1 screen. It is the anchor for the next reporting phase, where optional connector snapshots can link business partners to addresses, contact persons, financial balances, sales orders, purchase orders, AR/AP invoices, payments, activities, and graph-style business insights without reworking the connector API.

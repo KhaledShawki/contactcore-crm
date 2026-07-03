@@ -18,11 +18,12 @@ interface Props {
   submitLabel: string;
   onChange: (next: SchemaRecord) => void;
   onSubmit: () => void;
+  readOnly?: boolean;
 }
 
 const emptyValidation: SchemaValidationResult = { valid: true, fieldErrors: {}, formError: null };
 
-export default function SchemaForm({ screen, value, busy = false, canSubmit = true, submitDisabledReason, submitLabel, onChange, onSubmit }: Props) {
+export default function SchemaForm({ screen, value, busy = false, canSubmit = true, submitDisabledReason, submitLabel, onChange, onSubmit, readOnly = false }: Props) {
   const [validation, setValidation] = useState<SchemaValidationResult>(emptyValidation);
   const submittedOnceRef = useRef(false);
   const visibleFields = screen.fields.filter((field) => field.formVisible && field.type !== 'hidden');
@@ -54,7 +55,7 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
       {validation.formError && <div className="span-two"><BlueAlert message={validation.formError} /></div>}
       {visibleFields.map((field) => {
         const fieldValue = String(value[field.key] ?? field.defaultValue ?? '');
-        const disabled = field.readOnly || busy;
+        const disabled = readOnly || field.readOnly || busy;
         const error = validation.fieldErrors[field.key] ?? null;
         const helpText = field.validation?.helpText ?? undefined;
         const inputType = resolveInputType(field.type, field.validation?.inputType);
@@ -129,11 +130,13 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
           />
         );
       })}
-      <div className="schema-form__actions span-two">
-        <BlueButton type="submit" disabled={busy || !canSubmit} title={!busy && !canSubmit ? submitDisabledReason : undefined}>
-          {busy ? 'Saving...' : submitLabel}
-        </BlueButton>
-      </div>
+      {!readOnly && (
+        <div className="schema-form__actions span-two">
+          <BlueButton type="submit" disabled={busy || !canSubmit} title={!busy && !canSubmit ? submitDisabledReason : undefined}>
+            {busy ? 'Saving...' : submitLabel}
+          </BlueButton>
+        </div>
+      )}
     </form>
   );
 }

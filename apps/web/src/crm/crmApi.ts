@@ -34,7 +34,7 @@ const crmApi = baseApi.injectEndpoints({
       query: ({ kind, query, page, size, sort = 'updated_desc' }) => `/crm/business-partners?kind=${encodeURIComponent(kind)}&q=${encodeURIComponent(query)}&page=${page}&size=${size}&sort=${encodeURIComponent(sort)}`,
       providesTags: (result) => [
         { type: 'BusinessPartner', id: 'LIST' },
-        ...(result?.items.map((item) => ({ type: 'BusinessPartner' as const, id: item.id })) ?? []),
+        ...(result?.items.map((item) => ({ type: 'BusinessPartner' as const, id: item.id ?? item.code })) ?? []),
       ],
     }),
     getBusinessPartner: builder.query<BusinessPartner, number>({

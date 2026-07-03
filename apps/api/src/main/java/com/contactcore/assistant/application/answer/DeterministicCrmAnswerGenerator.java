@@ -109,7 +109,7 @@ public class DeterministicCrmAnswerGenerator implements AssistantAnswerGenerator
                 %s%s
 
                 %sSuggested next manual action:
-                Open the referenced CRM records and review the relevant data manually.
+                Open the referenced source records and review the relevant data manually.
                 """.formatted(heading, recordLines, truncationNotice, toolSummary).trim();
     }
 
@@ -140,7 +140,7 @@ public class DeterministicCrmAnswerGenerator implements AssistantAnswerGenerator
                 %s%s
 
                 Suggested next manual action:
-                Open the referenced CRM record%s to verify the details.
+                Open the referenced source record%s to verify the details.
                 """.formatted(records.size(), kindLabel(plan), plural, target, recordLines, truncationNotice, plural).trim();
     }
 
@@ -198,6 +198,13 @@ public class DeterministicCrmAnswerGenerator implements AssistantAnswerGenerator
         appendField(builder, fields, "Status", "status");
         appendField(builder, fields, "Marketing source", "source");
         appendField(builder, fields, "Primary email", "email");
+        appendField(builder, fields, "Primary phone", "phone");
+        appendField(builder, fields, "Website", "website");
+        appendField(builder, fields, "External code", "external code");
+        appendField(builder, fields, "Source system", "source system");
+        appendField(builder, fields, "Connector", "connector");
+        appendField(builder, fields, "Currency", "currency");
+        appendField(builder, fields, "Balance", "balance");
         appendField(builder, fields, "Primary contact", "primary contact");
         appendField(builder, fields, "Contact persons", "contact persons");
         appendField(builder, fields, "Lead count", "lead count");
