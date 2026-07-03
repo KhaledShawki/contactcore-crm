@@ -15,6 +15,7 @@ import {
   useSaveBusinessPartnerMutation,
   useUploadBusinessPartnerDocumentMutation,
 } from '../crm/crmApi';
+import { useGetConnectorBusinessPartnerQuery, useGetConnectorSessionQuery } from '../connectors/connectorApi';
 import { isFormModified } from '../forms/formComparison';
 import { useSingleFlightAction, useSingleFlightByKey } from '../hooks/useSingleFlightAction';
 import { createDefaultRecord, toWritablePayload, type SchemaRecord } from '../schema/schemaValues';
@@ -32,15 +33,17 @@ interface SchemaFormEditorProps {
   numericId?: number;
   screen: UiScreen;
   screenKey: string;
+  connectorMode?: boolean;
+  connectorName?: string | null;
 }
 
-function SchemaFormEditor({ initialValue, numericId, screen, screenKey }: SchemaFormEditorProps) {
+function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connectorMode = false, connectorName = null }: SchemaFormEditorProps) {
   const navigate = useNavigate();
   const { notifySuccess, notifyError } = useNotifications();
   const [formValue, setFormValue] = useState<SchemaRecord>(initialValue);
   const [savedPayload, setSavedPayload] = useState<SchemaRecord>(() => toWritablePayload(screen, initialValue));
   const [error, setError] = useState<string | null>(null);
-  const { data: documents = [] } = useListBusinessPartnerDocumentsQuery(numericId as number, { skip: !numericId });
+  const { data: documents = [] } = useListBusinessPartnerDocumentsQuery(numericId as number, { skip: !numericId || connectorMode });
   const [savePartner, { isLoading: saving }] = useSaveBusinessPartnerMutation();
   const [uploadDocument, { isLoading: uploadingDocument }] = useUploadBusinessPartnerDocumentMutation();
   const [archiveDocument] = useArchiveBusinessPartnerDocumentMutation();
@@ -50,7 +53,7 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey }: Schema
   const formModified = isFormModified(savedPayload, currentPayload);
 
   const saveTask = useSingleFlightAction(async () => {
-    if (!formModified) {
+    if (connectorMode || !formModified) {
       return;
     }
 
@@ -95,8 +98,13 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey }: Schema
   const saveBusy = saving || saveTask.running;
 
   return (
-    <BlueCard eyebrow="CRM" title={numericId ? `Edit ${entityLabel}` : `New ${entityLabel}`} action={<Link to={`/${screenKey}`}>Back</Link>}>
+    <BlueCard
+      eyebrow={connectorMode ? 'CRM connector' : 'CRM'}
+      title={connectorMode ? `${entityLabel} from ${connectorName ?? 'connector'}` : numericId ? `Edit ${entityLabel}` : `New ${entityLabel}`}
+      action={<Link to={`/${screenKey}`}>Back</Link>}
+    >
       {error && <BlueAlert message={error} />}
+      {connectorMode && <BlueAlert message="Read-only connector mode is active. This record is loaded from the selected CRM connector, not from the local ContactCore database." />}
       <SchemaForm
         screen={screen}
         value={formValue}
@@ -106,11 +114,12 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey }: Schema
         busy={saveBusy}
         canSubmit={formModified}
         submitDisabledReason="No changes to save."
+        readOnly={connectorMode}
       />
 
-      {numericId && <ContactPersonsPanel businessPartnerId={numericId} />}
+      {numericId && !connectorMode && <ContactPersonsPanel businessPartnerId={numericId} />}
 
-      {numericId && (
+      {numericId && !connectorMode && (
         <section className="documents-panel">
           <header className="subheader">
             <h2>Documents</h2>
@@ -142,8 +151,8 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey }: Schema
   );
 }
 
-function initialFormValue(screen: UiScreen, record: BusinessPartner | undefined, numericId: number | undefined): SchemaRecord {
-  if (numericId && record) {
+function initialFormValue(screen: UiScreen, record: BusinessPartner | undefined): SchemaRecord {
+  if (record) {
     return record as unknown as SchemaRecord;
   }
 
@@ -152,22 +161,33 @@ function initialFormValue(screen: UiScreen, record: BusinessPartner | undefined,
 
 export default function SchemaFormPage({ screenKey }: Props) {
   const { id } = useParams();
-  const numericId = id && id !== 'new' ? Number(id) : undefined;
+  const isNew = id === 'new';
+  const recordKey = id && !isNew ? decodeURIComponent(id) : undefined;
+  const numericId = recordKey && /^\d+$/.test(recordKey) ? Number(recordKey) : undefined;
+  const { data: connectorSession } = useGetConnectorSessionQuery();
+  const connectorMode = connectorSession?.connected === true;
   const { data: screen, isLoading: screenLoading, error: screenError } = useGetScreenQuery(screenKey);
-  const { data: record, isLoading: recordLoading, error: recordError } = useGetBusinessPartnerQuery(numericId as number, { skip: !numericId });
+  const localRecord = useGetBusinessPartnerQuery(numericId as number, { skip: connectorMode || !numericId });
+  const connectorRecord = useGetConnectorBusinessPartnerQuery(recordKey ?? '', { skip: !connectorMode || !recordKey || isNew });
+  const record = connectorMode ? connectorRecord.data : localRecord.data;
+  const recordLoading = connectorMode ? connectorRecord.isLoading : localRecord.isLoading;
+  const recordError = connectorMode ? connectorRecord.error : localRecord.error;
 
   if (screenLoading || recordLoading) return <LoadingState />;
+  if (connectorMode && isNew) return <ErrorState message="Creating records is not supported while a read-only CRM connector is active." />;
   if (screenError || recordError || !screen) return <ErrorState message="Could not load form." />;
 
-  const editorKey = `${screenKey}:${numericId ?? 'new'}:${record?.id ?? 'default'}`;
+  const editorKey = `${screenKey}:${connectorMode ? recordKey : numericId ?? 'new'}:${record?.externalId ?? record?.id ?? 'default'}`;
 
   return (
     <SchemaFormEditor
       key={editorKey}
-      initialValue={initialFormValue(screen, record, numericId)}
-      numericId={numericId}
+      initialValue={initialFormValue(screen, record)}
+      numericId={connectorMode ? undefined : numericId}
       screen={screen}
       screenKey={screenKey}
+      connectorMode={connectorMode}
+      connectorName={connectorSession?.connectorDisplayName}
     />
   );
 }

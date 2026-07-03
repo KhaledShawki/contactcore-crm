@@ -17,6 +17,6 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['Auth', 'UiSchema', 'BusinessPartner', 'ContactPerson', 'Profile', 'ProfileImage', 'Documents', 'MarketingSource', 'Settings', 'Dashboard', 'Report', 'Assistant'],
+  tagTypes: ['Auth', 'UiSchema', 'BusinessPartner', 'ContactPerson', 'Profile', 'ProfileImage', 'Documents', 'MarketingSource', 'Settings', 'Dashboard', 'Report', 'Assistant', 'Connector', 'ConnectorSession', 'ConnectorBusinessPartner'],
   endpoints: () => ({}),
 });

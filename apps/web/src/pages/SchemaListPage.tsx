@@ -12,6 +12,7 @@ import BlueTable, { type BlueColumn } from '../components/BlueTable';
 import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
 import { useArchiveBusinessPartnerMutation, useSearchBusinessPartnersQuery } from '../crm/crmApi';
+import { useGetConnectorSessionQuery, useSearchConnectorBusinessPartnersQuery } from '../connectors/connectorApi';
 import { useDownloadBusinessPartnerReportMutation } from '../reports/reportsApi';
 import { saveDownloadedReport } from '../reports/reportDownload';
 import { useGetScreenQuery } from '../schema/schemaApi';
@@ -30,10 +31,19 @@ export default function SchemaListPage({ screenKey }: Props) {
   const [sort, setSort] = useState('updated_desc');
   const { notifySuccess, notifyError } = useNotifications();
   const { data: screen, isLoading: screenLoading, error: screenError } = useGetScreenQuery(screenKey);
-  const { data, isFetching, error: rowsError } = useSearchBusinessPartnersQuery(
+  const { data: connectorSession } = useGetConnectorSessionQuery();
+  const connectorMode = connectorSession?.connected === true;
+  const localRows = useSearchBusinessPartnersQuery(
     { kind: screen?.entityKind ?? '', query, page, size, sort },
-    { skip: !screen },
+    { skip: !screen || connectorMode },
   );
+  const connectorRows = useSearchConnectorBusinessPartnersQuery(
+    { type: screen?.entityKind ?? '', query, page, size, sort },
+    { skip: !screen || !connectorMode },
+  );
+  const data = connectorMode ? connectorRows.data : localRows.data;
+  const isFetching = connectorMode ? connectorRows.isFetching : localRows.isFetching;
+  const rowsError = connectorMode ? connectorRows.error : localRows.error;
   const [archivePartner] = useArchiveBusinessPartnerMutation();
   const [downloadReport, { isLoading: reportDownloading }] = useDownloadBusinessPartnerReportMutation();
   const { run: runArchiveTask, isRunning: isArchiveRunning } = useSingleFlightByKey<number>();
@@ -54,7 +64,7 @@ export default function SchemaListPage({ screenKey }: Props) {
   }
 
   const archiveRecord = useCallback(async (row: BusinessPartner) => {
-    if (!row.id || !screen) return;
+    if (connectorMode || !row.id || !screen) return;
     const entityLabel = singularTitle(screen.title);
     const shouldMoveToPreviousPage = page > 0 && data?.items.length === 1;
     await runArchiveTask(row.id, async () => {
@@ -68,10 +78,10 @@ export default function SchemaListPage({ screenKey }: Props) {
         notifyError(`Could not archive the ${entityLabel.toLowerCase()}. Try again.`);
       }
     });
-  }, [archivePartner, data?.items.length, notifyError, notifySuccess, page, runArchiveTask, screen]);
+  }, [archivePartner, connectorMode, data?.items.length, notifyError, notifySuccess, page, runArchiveTask, screen]);
 
   const exportReport = useCallback(async () => {
-    if (!screen) return;
+    if (!screen || connectorMode) return;
     try {
       const report = await downloadReport({ kind: screen.entityKind, query, sort }).unwrap();
       saveDownloadedReport(report);
@@ -79,7 +89,7 @@ export default function SchemaListPage({ screenKey }: Props) {
     } catch {
       notifyError(`Could not generate the ${screen.title.toLowerCase()} report. Try again.`);
     }
-  }, [downloadReport, notifyError, notifySuccess, query, screen, sort]);
+  }, [connectorMode, downloadReport, notifyError, notifySuccess, query, screen, sort]);
 
   const columns = useMemo<BlueColumn<BusinessPartner>[]>(() => {
     if (!screen) return [];
@@ -100,15 +110,17 @@ export default function SchemaListPage({ screenKey }: Props) {
         align: 'right',
         render: (row) => (
           <div className="row-actions">
-            <Link to={`/${screenKey}/${row.id}`}>Open</Link>
-            <button type="button" className="link-button danger-link" disabled={row.id ? isArchiveRunning(row.id) : false} onClick={() => { void archiveRecord(row); }}>
-              {row.id && isArchiveRunning(row.id) ? 'Archiving...' : 'Archive'}
-            </button>
+            <Link to={`/${screenKey}/${encodeURIComponent(String(row.externalId ?? row.id ?? row.code))}`}>Open</Link>
+            {!connectorMode && (
+              <button type="button" className="link-button danger-link" disabled={row.id ? isArchiveRunning(row.id) : false} onClick={() => { void archiveRecord(row); }}>
+                {row.id && isArchiveRunning(row.id) ? 'Archiving...' : 'Archive'}
+              </button>
+            )}
           </div>
         ),
       },
     ];
-  }, [archiveRecord, isArchiveRunning, screen, screenKey]);
+  }, [archiveRecord, connectorMode, isArchiveRunning, screen, screenKey]);
 
   if (screenLoading) return <LoadingState />;
   if (screenError || rowsError || !screen) return <ErrorState message="Could not load records." />;
@@ -117,14 +129,18 @@ export default function SchemaListPage({ screenKey }: Props) {
 
   return (
     <BlueCard
-      eyebrow="CRM"
-      title={screen.title}
+      eyebrow={connectorMode ? 'CRM connector' : 'CRM'}
+      title={connectorMode && connectorSession?.connectorDisplayName ? `${screen.title} from ${connectorSession.connectorDisplayName}` : screen.title}
       action={(
         <div className="card-actions">
-          <BlueButton type="button" variant="secondary" disabled={reportDownloading} onClick={() => { void exportReport(); }}>
-            {reportDownloading ? 'Exporting...' : 'Export XLSX'}
-          </BlueButton>
-          <Link className="blue-button blue-button--primary" to={`/${screenKey}/new`}>New</Link>
+          {!connectorMode && (
+            <>
+              <BlueButton type="button" variant="secondary" disabled={reportDownloading} onClick={() => { void exportReport(); }}>
+                {reportDownloading ? 'Exporting...' : 'Export XLSX'}
+              </BlueButton>
+              <Link className="blue-button blue-button--primary" to={`/${screenKey}/new`}>New</Link>
+            </>
+          )}
         </div>
       )}
     >
@@ -138,7 +154,8 @@ export default function SchemaListPage({ screenKey }: Props) {
         />
         {isFetching && <span className="refresh-pill">Refreshing</span>}
       </div>
-      <BlueTable columns={columns} rows={pageData.items} rowKey={(row) => row.id ?? row.code} />
+      {connectorMode && <p className="hint">Read-only connector mode is active. The list is loaded from the selected CRM connector, not from the local ContactCore database.</p>}
+      <BlueTable columns={columns} rows={pageData.items} rowKey={(row) => row.externalId ?? row.id ?? row.code} />
       <BluePagination
         page={pageData.page}
         size={pageData.size}

@@ -76,7 +76,14 @@ export interface ContactPerson {
 }
 
 export interface BusinessPartner {
-  id?: number;
+  id?: number | null;
+  externalId?: string | null;
+  sourceSystem?: string | null;
+  connectorInstanceId?: number | null;
+  connectorDisplayName?: string | null;
+  readOnly?: boolean;
+  currency?: string | null;
+  balance?: number | string | null;
   version?: number;
   createdAt?: string;
   updatedAt?: string;

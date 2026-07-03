@@ -18,6 +18,7 @@ import SettingsPage from '../pages/SettingsPage';
 import AssistantPage from '../assistant/AssistantPage';
 import { useGetUiSettingsQuery } from '../settings/settingsApi';
 import { applyUiSettings } from '../theme/themeSlice';
+import ConnectorSessionPanel from '../connectors/ConnectorSessionPanel';
 
 export default function AppShell() {
   const { data: manifest, isLoading, error } = useGetManifestQuery();
@@ -79,6 +80,7 @@ export default function AppShell() {
             </div>
           </div>
           <div className="topbar-actions">
+            <ConnectorSessionPanel />
             <NavLink className="settings-pill" to="/settings">UI Settings</NavLink>
             <span className="user-pill">{user?.displayName ?? user?.username ?? 'User'}</span>
           </div>

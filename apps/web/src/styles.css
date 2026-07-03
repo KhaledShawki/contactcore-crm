@@ -1355,3 +1355,55 @@ a:hover { text-decoration: underline; }
     width: auto;
   }
 }
+
+.connector-session {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.5rem;
+}
+
+.connector-pill {
+  background: color-mix(in srgb, var(--blue-primary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue-primary) 28%, transparent);
+  border-radius: 999px;
+  color: var(--blue-text);
+  display: inline-flex;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.45rem 0.7rem;
+  white-space: nowrap;
+}
+
+.connector-pill--muted {
+  background: var(--blue-surface-muted);
+  border-color: var(--blue-border);
+  color: var(--blue-text-muted);
+}
+
+.connector-modal {
+  background: var(--blue-surface-solid);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--blue-radius-lg);
+  box-shadow: var(--blue-shadow-lg);
+  color: var(--blue-text);
+  gap: 1rem;
+  max-width: 460px;
+  padding: 1.25rem;
+  width: min(460px, calc(100% - 2rem));
+}
+
+.connector-modal[open] {
+  display: grid;
+}
+
+.connector-modal::backdrop {
+  background: rgb(15 23 42 / 0.56);
+}
+
+.connector-modal header,
+.modal-actions {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
