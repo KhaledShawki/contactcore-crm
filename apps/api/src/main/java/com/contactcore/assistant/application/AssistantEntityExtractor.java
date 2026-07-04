@@ -26,17 +26,30 @@ public class AssistantEntityExtractor {
     );
 
     public AssistantCriteria extract(String message) {
-        String normalized = message == null ? "" : message.trim();
+        return extract(message, message);
+    }
+
+    public AssistantCriteria extract(String semanticMessage, String sourceMessage) {
+        String normalized = semanticMessage == null ? "" : semanticMessage.trim();
+        String source = sourceMessage == null ? "" : sourceMessage.trim();
         String lower = normalized.toLowerCase(Locale.ROOT);
         return new AssistantCriteria(
-                extractSearchTerm(normalized),
+                extractSearchTerm(source, normalized),
                 extractKind(lower),
                 extractSource(normalized),
                 extractStaleDays(lower).orElse(14)
         );
     }
 
-    private String extractSearchTerm(String message) {
+    private String extractSearchTerm(String sourceMessage, String semanticMessage) {
+        String sourceCandidate = extractSearchTermCandidate(sourceMessage, true);
+        if (!sourceCandidate.isBlank()) {
+            return sourceCandidate;
+        }
+        return extractSearchTermCandidate(semanticMessage, false);
+    }
+
+    private String extractSearchTermCandidate(String message, boolean preserveExplicitSourceNames) {
         Matcher quotedMatcher = QUOTED_TEXT.matcher(message);
         if (quotedMatcher.find()) {
             return cleanEntityName(quotedMatcher.group(1));
@@ -57,10 +70,14 @@ public class AssistantEntityExtractor {
             return doesExistLookup.get();
         }
 
+        if (preserveExplicitSourceNames) {
+            return "";
+        }
+
         String lower = message.toLowerCase(Locale.ROOT);
         String[] markers = {
                 "related to", "summarize customer", "summarize supplier", "summarize lead",
-                "for customer", "for supplier", "for lead", "about", "find", "search", "for"
+                "show me", "show", "list", "for customer", "for supplier", "for lead", "about", "find", "search", "for"
         };
         for (String marker : markers) {
             int index = lower.indexOf(marker);

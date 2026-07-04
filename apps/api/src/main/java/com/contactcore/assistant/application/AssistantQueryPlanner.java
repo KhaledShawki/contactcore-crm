@@ -2,6 +2,12 @@
 
 package com.contactcore.assistant.application;
 
+import com.contactcore.assistant.application.nlu.AssistantConcept;
+import com.contactcore.assistant.application.nlu.AssistantMessageNormalizer;
+import com.contactcore.assistant.application.nlu.AssistantNluRequest;
+import com.contactcore.assistant.application.nlu.AssistantNluRouter;
+import com.contactcore.assistant.application.nlu.AssistantNormalizedMessage;
+import com.contactcore.assistant.application.nlu.CompositeAssistantNluRouter;
 import com.contactcore.assistant.application.planning.AssistantIntent;
 import com.contactcore.assistant.application.planning.AssistantIntentClassifier;
 import com.contactcore.assistant.application.planning.AssistantToolPlanValidator;
@@ -12,6 +18,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,22 +30,46 @@ public class AssistantQueryPlanner {
     private final AssistantEntityExtractor entityExtractor;
     private final AssistantIntentClassifier intentClassifier;
     private final AssistantToolPlanValidator planValidator;
+    private final AssistantNluRouter nluRouter;
 
     public AssistantQueryPlanner(AssistantProperties properties,
                                  AssistantEntityExtractor entityExtractor,
                                  AssistantIntentClassifier intentClassifier,
                                  AssistantToolPlanValidator planValidator) {
+        this(properties, entityExtractor, intentClassifier, planValidator, new CompositeAssistantNluRouter(new AssistantMessageNormalizer()));
+    }
+
+    @Autowired
+    public AssistantQueryPlanner(AssistantProperties properties,
+                                 AssistantEntityExtractor entityExtractor,
+                                 AssistantIntentClassifier intentClassifier,
+                                 AssistantToolPlanValidator planValidator,
+                                 AssistantNluRouter nluRouter) {
         this.properties = properties;
         this.entityExtractor = entityExtractor;
         this.intentClassifier = intentClassifier;
         this.planValidator = planValidator;
+        this.nluRouter = nluRouter;
+    }
+
+    public AssistantQueryPlanner(AssistantProperties properties,
+                                 AssistantEntityExtractor entityExtractor,
+                                 AssistantIntentClassifier intentClassifier,
+                                 AssistantToolPlanValidator planValidator,
+                                 AssistantMessageNormalizer messageNormalizer) {
+        this(properties, entityExtractor, intentClassifier, planValidator, new CompositeAssistantNluRouter(messageNormalizer));
     }
 
     public AssistantPlan plan(String normalizedMessage) {
-        String normalized = normalizedMessage == null ? "" : normalizedMessage.trim();
+        AssistantNormalizedMessage normalizedInput = nluRouter.route(new AssistantNluRequest(normalizedMessage)).normalizedMessage();
+        if (normalizedInput.hasConflictingBusinessPartnerTypes()) {
+            return ambiguousBusinessPartnerTypePlan(normalizedInput);
+        }
+        String normalized = normalizedInput.canonicalText();
         String lower = normalized.toLowerCase(Locale.ROOT);
-        AssistantEntityExtractor.AssistantCriteria criteria = entityExtractor.extract(normalized);
-        AssistantIntent intent = intentClassifier.classify(normalized, criteria);
+        AssistantEntityExtractor.AssistantCriteria extractedCriteria = entityExtractor.extract(normalized, normalizedInput.originalText());
+        AssistantIntent intent = intentClassifier.classify(normalized, extractedCriteria);
+        AssistantEntityExtractor.AssistantCriteria criteria = criteriaForIntent(intent, extractedCriteria);
         List<AssistantToolCall> toolCalls = selectToolCalls(intent, lower, criteria);
         planValidator.validate(intent, toolCalls);
         AssistantRetrievalType type = classify(intent, toolCalls);
@@ -52,6 +84,33 @@ public class AssistantQueryPlanner {
                 toolCalls,
                 userIntent(intent, criteria)
         );
+    }
+
+
+    private AssistantPlan ambiguousBusinessPartnerTypePlan(AssistantNormalizedMessage normalizedInput) {
+        String conflictingTypes = normalizedInput.detectedBusinessPartnerTypes().stream()
+                .map(AssistantConcept::name)
+                .sorted()
+                .collect(Collectors.joining(","));
+        return new AssistantPlan(
+                AssistantRetrievalType.ASSISTANT_HELP,
+                AssistantIntent.UNCLEAR_REQUEST,
+                normalizedInput.canonicalText(),
+                "",
+                "",
+                "",
+                properties.maxResults(),
+                List.of(),
+                "UNCLEAR_REQUEST conflicting business partner types [" + conflictingTypes + "]"
+        );
+    }
+
+    private AssistantEntityExtractor.AssistantCriteria criteriaForIntent(AssistantIntent intent,
+                                                                        AssistantEntityExtractor.AssistantCriteria criteria) {
+        if (intent == AssistantIntent.LEADS_MISSING_CONTACTS) {
+            return new AssistantEntityExtractor.AssistantCriteria("", "", criteria.source(), criteria.staleDays());
+        }
+        return criteria;
     }
 
     private List<AssistantToolCall> selectToolCalls(AssistantIntent intent,
@@ -143,7 +202,7 @@ public class AssistantQueryPlanner {
 
     private String normalizedSearchFallback(String lower) {
         return lower
-                .replaceAll("(?i)\\b(do we have|is there|are there|does|exist|exists|find|search|records?|related to|about|show me|details?|crm|please|with name|named|called)\\b", "")
+                .replaceAll("(?i)\\b(do we have|is there|are there|does|exist|exists|find|search|records?|related to|about|show me|show|details?|crm|please|with name|named|called)\\b", "")
                 .replaceAll("(?i)\\b(customers?|suppliers?|leads?|business partners?)\\b", "")
                 .replaceAll("[?.!,;:]+", " ")
                 .trim();

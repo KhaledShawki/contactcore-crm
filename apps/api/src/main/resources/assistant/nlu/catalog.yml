@@ -1,0 +1,207 @@
+# Copyright (c) Khaled Shawki. All rights reserved.
+
+version: 1
+
+ignoredTokens:
+  - der
+  - die
+  - das
+  - den
+  - dem
+  - des
+  - ein
+  - eine
+  - einen
+  - einem
+  - einer
+  - ال
+
+aliases:
+  - canonical: lead
+    concept: LEAD
+    phrases:
+      - العملاء المحتملين
+      - العميل المحتمل
+      - عميل محتمل
+      - leads
+      - lead
+
+  - canonical: business partner
+    concept: BUSINESS_PARTNER
+    phrases:
+      - geschäftspartner
+      - geschaeftspartner
+      - business partners
+      - business partner
+      - الشركاء التجاريين
+      - الشريك التجاري
+      - شريك تجاري
+
+  - canonical: contact persons
+    concept: CONTACT_PERSON
+    phrases:
+      - contact persons
+      - contact person
+      - contacts
+      - kontaktpersonen
+      - kontaktperson
+      - ansprechpartner
+      - جهة الاتصال
+      - جهة اتصال
+      - جهات الاتصال
+      - جهات اتصال
+
+  - canonical: show me
+    phrases:
+      - show me
+      - zeige mir
+      - zeig mir
+      - zeige
+      - zeig
+      - اعرض
+      - أظهر
+      - اظهر
+
+  - canonical: search
+    phrases:
+      - search
+      - suche
+      - such
+      - ابحث عن
+      - ابحث
+
+  - canonical: find
+    phrases:
+      - find
+      - finde
+      - finden
+
+  - canonical: list
+    phrases:
+      - list
+      - liste
+      - auflisten
+
+  - canonical: summary
+    concept: SUMMARY
+    phrases:
+      - summary
+      - summarize
+      - zusammenfassung
+      - fasse zusammen
+      - zusammenfassen
+      - لخص
+      - ملخص
+      - خلاصة
+
+  - canonical: details
+    concept: DETAILS
+    phrases:
+      - details
+      - detail
+      - profile
+      - profil
+      - تفاصيل
+      - تفصيل
+      - ملف
+
+  - canonical: do we have
+    concept: EXISTENCE
+    phrases:
+      - do we have
+      - is there
+      - are there
+      - haben wir
+      - gibt es
+      - existiert
+      - هل لدينا
+      - هل يوجد
+      - يوجد
+
+  - canonical: customer
+    concept: CUSTOMER
+    phrases:
+      - customers
+      - customer
+      - clients
+      - client
+      - kunden
+      - kunde
+      - العملاء
+      - العميل
+      - عملاء
+      - عميل
+
+  - canonical: supplier
+    concept: SUPPLIER
+    phrases:
+      - suppliers
+      - supplier
+      - vendors
+      - vendor
+      - lieferanten
+      - lieferant
+      - الموردين
+      - المورد
+      - موردين
+      - مورد
+
+  - canonical: without
+    concept: WITHOUT
+    phrases:
+      - without
+      - "no"
+      - missing
+      - do not have
+      - does not have
+      - "don't have"
+      - "doesn't have"
+      - ohne
+      - keine
+      - keinen
+      - kein
+      - fehlende
+      - fehlen
+      - لا يملكون
+      - لا يمتلكون
+      - من دون
+      - لا يملك
+      - لا تملك
+      - ليس لديهم
+      - بدون
+
+  - canonical: need
+    phrases:
+      - need
+      - needs
+      - benötigen
+      - brauchen
+      - bedarf
+      - يحتاج
+      - تحتاج
+      - بحاجة
+
+  - canonical: follow-up
+    concept: FOLLOW_UP
+    phrases:
+      - follow-up
+      - follow up
+      - followup
+      - nachverfolgung
+      - متابعة
+
+  - canonical: recent
+    concept: RECENT
+    phrases:
+      - recent
+      - latest
+      - newest
+      - neueste
+      - neue
+      - aktuelle
+      - kürzlich
+      - kuerzlich
+      - الأحدث
+      - احدث
+      - حديثة
+      - جديدة
