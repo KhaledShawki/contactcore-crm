@@ -22,6 +22,10 @@ const profileApi = baseApi.injectEndpoints({
       query: (body) => ({ url: '/profile', method: 'PUT', body }),
       invalidatesTags: [{ type: 'Profile' as const, id: 'ME' }, 'Auth'],
     }),
+    updateProfileLocale: builder.mutation<UserProfile, string>({
+      query: (locale) => ({ url: '/profile/locale', method: 'PATCH', body: { locale } }),
+      invalidatesTags: [{ type: 'Profile' as const, id: 'ME' }, 'Auth'],
+    }),
     uploadProfileImage: builder.mutation<UserProfile, File>({
       query: (file) => {
         const body = new FormData();
@@ -60,4 +64,4 @@ const profileApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useGetProfileQuery, useUpdateProfileMutation, useUploadProfileImageMutation, useGetProfileImageQuery } = profileApi;
+export const { useGetProfileQuery, useUpdateProfileMutation, useUpdateProfileLocaleMutation, useUploadProfileImageMutation, useGetProfileImageQuery } = profileApi;

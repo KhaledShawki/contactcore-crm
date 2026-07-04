@@ -1,9 +1,19 @@
 // Copyright (c) Khaled Shawki. All rights reserved.
 
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import NotificationViewport from './NotificationViewport';
+import { translate } from '../i18n/translate';
 import type { AppNotification } from './notificationTypes';
+
+vi.mock('../i18n/LocaleProvider', () => ({
+  useLocale: () => ({
+    locale: 'en',
+    direction: 'ltr',
+    setAnonymousLocale: vi.fn(),
+    t: (key: string, params?: Record<string, string | number | boolean | null | undefined>) => translate('en', key, params),
+  }),
+}));
 
 const notification: AppNotification = {
   id: 'notification-1',

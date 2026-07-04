@@ -5,9 +5,13 @@ import BlueAlert from './BlueAlert';
 import BlueButton from './BlueButton';
 import BlueInput from './BlueInput';
 import BlueSelect from './BlueSelect';
+import { CodeText } from '../i18n/components/CodeText';
+import { DirectionalText } from '../i18n/components/DirectionalText';
+import { EmailText } from '../i18n/components/EmailText';
+import { useLocale } from '../i18n/LocaleProvider';
 import type { SchemaRecord } from '../schema/schemaValues';
 import { validateSchemaRecord, type SchemaValidationResult } from '../schema/schemaValidation';
-import type { UiScreen } from '../schema/types';
+import type { UiField, UiScreen } from '../schema/types';
 
 interface Props {
   screen: UiScreen;
@@ -24,6 +28,7 @@ interface Props {
 const emptyValidation: SchemaValidationResult = { valid: true, fieldErrors: {}, formError: null };
 
 export default function SchemaForm({ screen, value, busy = false, canSubmit = true, submitDisabledReason, submitLabel, onChange, onSubmit, readOnly = false }: Props) {
+  const { t } = useLocale();
   const [validation, setValidation] = useState<SchemaValidationResult>(emptyValidation);
   const submittedOnceRef = useRef(false);
   const visibleFields = screen.fields.filter((field) => field.formVisible && field.type !== 'hidden');
@@ -32,7 +37,7 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
     const nextRecord = { ...value, [key]: nextValue };
     onChange(nextRecord);
     if (submittedOnceRef.current) {
-      setValidation(validateSchemaRecord(screen, nextRecord));
+      setValidation(validateSchemaRecord(screen, nextRecord, t));
     }
   }
 
@@ -41,7 +46,7 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
       return;
     }
 
-    const result = validateSchemaRecord(screen, value);
+    const result = validateSchemaRecord(screen, value, t);
     submittedOnceRef.current = true;
     setValidation(result);
     if (!result.valid) {
@@ -59,17 +64,23 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
         const error = validation.fieldErrors[field.key] ?? null;
         const helpText = field.validation?.helpText ?? undefined;
         const inputType = resolveInputType(field.type, field.validation?.inputType);
+        const label = t(field.labelKey ?? `schema.field.${field.key}`);
+
+        if (readOnly || field.readOnly) {
+          return <ReadOnlyField key={field.key} field={field} label={label} value={fieldValue} helpText={helpText} />;
+        }
 
         if (field.type === 'select') {
           return (
             <BlueSelect
               key={field.key}
               name={field.key}
-              label={field.label}
+              label={label}
               required={field.required}
               disabled={disabled}
               value={fieldValue}
               options={field.options}
+              optionLabels={Object.fromEntries(field.options.map((option) => [option, t(`schema.option.${option}`)]))}
               error={error}
               helpText={helpText}
               onChange={(event) => setField(field.key, event.target.value)}
@@ -87,7 +98,7 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
                 onChange={(event) => setField(field.key, event.target.checked)}
               />
               <span>
-                <strong>{field.label}</strong>
+                <strong>{label}</strong>
                 {helpText && <small>{helpText}</small>}
               </span>
             </label>
@@ -98,7 +109,7 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
           return (
             <label key={field.key} className={`blue-field span-two ${error ? 'blue-field--invalid' : ''}`.trim()}>
               <span>
-                {field.label}
+                {label}
                 {field.required && <small className="required-marker" aria-hidden="true"> *</small>}
               </span>
               <textarea
@@ -118,7 +129,7 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
           <BlueInput
             key={field.key}
             name={field.key}
-            label={field.label}
+            label={label}
             type={inputType}
             inputMode={inputType === 'tel' ? 'tel' : inputType === 'email' ? 'email' : inputType === 'number' ? 'numeric' : undefined}
             required={field.required}
@@ -133,12 +144,29 @@ export default function SchemaForm({ screen, value, busy = false, canSubmit = tr
       {!readOnly && (
         <div className="schema-form__actions span-two">
           <BlueButton type="submit" disabled={busy || !canSubmit} title={!busy && !canSubmit ? submitDisabledReason : undefined}>
-            {busy ? 'Saving...' : submitLabel}
+            {busy ? t('schema.form.saving') : submitLabel}
           </BlueButton>
         </div>
       )}
     </form>
   );
+}
+
+function ReadOnlyField({ field, label, value, helpText }: { field: UiField; label: string; value: string; helpText?: string }) {
+  return (
+    <div className={`blue-field readonly-field ${field.type === 'textarea' ? 'span-two' : ''}`.trim()}>
+      <span>{label}</span>
+      <div className="readonly-value"><ReadOnlyValue valueKind={field.valueKind} value={value} /></div>
+      {helpText && <small className="field-help">{helpText}</small>}
+    </div>
+  );
+}
+
+function ReadOnlyValue({ valueKind, value }: { valueKind: string | null | undefined; value: string }) {
+  if (!value) return '—';
+  if (valueKind === 'code' || valueKind === 'phone' || valueKind === 'url') return <CodeText value={value} />;
+  if (valueKind === 'email') return <EmailText value={value} />;
+  return <DirectionalText value={value} />;
 }
 
 function resolveInputType(fieldType: string, inputType: string | null | undefined) {

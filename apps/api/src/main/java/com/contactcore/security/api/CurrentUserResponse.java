@@ -9,5 +9,7 @@ public record CurrentUserResponse(
         String username,
         String email,
         String displayName,
+        String locale,
+        String direction,
         List<String> roles
 ) {}

@@ -10,7 +10,12 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: apiBaseUrl,
     prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.accessToken;
+      const state = getState() as RootState;
+      const token = state.auth.accessToken;
+      const locale = state.auth.user?.locale;
+      if (locale) {
+        headers.set('accept-language', locale);
+      }
       if (token) {
         headers.set('authorization', `Bearer ${token}`);
       }

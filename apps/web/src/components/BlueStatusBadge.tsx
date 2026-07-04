@@ -1,12 +1,21 @@
 // Copyright (c) Khaled Shawki. All rights reserved.
 
+import { useLocale } from '../i18n/LocaleProvider';
+
 interface Props {
   value: string;
 }
 
 export default function BlueStatusBadge({ value }: Props) {
+  const { t } = useLocale();
   const tone = resolveTone(value);
-  return <span className={`blue-status blue-status--${tone}`}>{value}</span>;
+  return <span className={`blue-status blue-status--${tone}`}>{localizedStatus(value, t)}</span>;
+}
+
+function localizedStatus(value: string, t: (key: string) => string): string {
+  const key = `data.label.${value.trim().toUpperCase().replace(/\s+/g, '_')}`;
+  const translated = t(key);
+  return translated === key ? value : translated;
 }
 
 function resolveTone(value: string): 'success' | 'warning' | 'neutral' {

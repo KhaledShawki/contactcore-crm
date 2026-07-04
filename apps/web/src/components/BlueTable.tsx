@@ -1,12 +1,13 @@
 // Copyright (c) Khaled Shawki. All rights reserved.
 
 import type { ReactNode } from 'react';
+import { useLocale } from '../i18n/LocaleProvider';
 
 export interface BlueColumn<T> {
   key: string;
   header: string;
   render: (row: T) => ReactNode;
-  align?: 'left' | 'right';
+  align?: 'start' | 'end' | 'left' | 'right';
 }
 
 interface Props<T> {
@@ -16,9 +17,10 @@ interface Props<T> {
   emptyText?: string;
 }
 
-export default function BlueTable<T>({ columns, rows, rowKey, emptyText = 'No records found.' }: Props<T>) {
+export default function BlueTable<T>({ columns, rows, rowKey, emptyText }: Props<T>) {
+  const { t } = useLocale();
   if (rows.length === 0) {
-    return <div className="empty-state">{emptyText}</div>;
+    return <div className="empty-state">{emptyText ?? t('common.empty.noRecords')}</div>;
   }
 
   return (
@@ -26,14 +28,14 @@ export default function BlueTable<T>({ columns, rows, rowKey, emptyText = 'No re
       <table className="blue-table">
         <thead>
           <tr>
-            {columns.map((column) => <th key={column.key} className={column.align === 'right' ? 'is-right' : undefined}>{column.header}</th>)}
+            {columns.map((column) => <th key={column.key} className={isEndAligned(column.align) ? 'is-right' : undefined}>{column.header}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={rowKey(row)}>
               {columns.map((column) => (
-                <td key={column.key} data-label={column.header} className={column.align === 'right' ? 'is-right' : undefined}>{column.render(row)}</td>
+                <td key={column.key} data-label={column.header} className={isEndAligned(column.align) ? 'is-right' : undefined}>{column.render(row)}</td>
               ))}
             </tr>
           ))}
@@ -41,4 +43,8 @@ export default function BlueTable<T>({ columns, rows, rowKey, emptyText = 'No re
       </table>
     </div>
   );
+}
+
+function isEndAligned(align: BlueColumn<unknown>['align']) {
+  return align === 'end' || align === 'right';
 }

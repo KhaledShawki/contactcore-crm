@@ -2,53 +2,51 @@
 
 package com.contactcore.assistant.application.answer;
 
+import com.contactcore.assistant.application.AssistantLocaleContext;
+import com.contactcore.shared.localization.LocaleConfiguration;
+import com.contactcore.shared.localization.LocaleContext;
+import com.contactcore.shared.localization.LocalizedMessageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AssistantStaticResponseCatalog {
-    public String greetingAnswer() {
-        return "Hi. I can help you search CRM records, summarize customers, leads, and suppliers, check contact coverage, review lead follow-up, and answer read-only questions based on ContactCore CRM data.";
+    private final LocalizedMessageService messages;
+
+    public AssistantStaticResponseCatalog() {
+        this(new LocalizedMessageService(new LocaleConfiguration().messageSource()));
     }
 
-    public String identityAnswer() {
-        return """
-                I am ContactCore Assistant, a read-only CRM assistant for ContactCore.
-
-                I can help you search and summarize authorized CRM data such as customers, leads, suppliers, contact persons, marketing sources, recent records, follow-up leads, and missing contact-person coverage.
-
-                I cannot create, update, delete, archive, or send records.
-                """.trim();
+    @Autowired
+    public AssistantStaticResponseCatalog(LocalizedMessageService messages) {
+        this.messages = messages;
     }
 
-    public String capabilitiesAnswer() {
-        return """
-                I can help with read-only CRM questions, for example:
-
-                - Find customers, leads, or suppliers by name.
-                - Check whether a customer, lead, or supplier exists.
-                - List leads that need follow-up.
-                - List leads missing contact persons.
-                - Summarize CRM status.
-                - Show marketing source performance.
-                - Show recent CRM records.
-                - Summarize contact coverage.
-
-                I cannot create, update, delete, archive, or send records.
-                """.trim();
+    public String greetingAnswer(AssistantLocaleContext locale) {
+        return message(locale, "assistant.static.greeting", "Hi. I can help with read-only CRM questions based on ContactCore CRM data.");
     }
 
-    public String unsupportedAnswer() {
-        return """
-                I can only answer from authorized ContactCore CRM data in read-only mode.
-
-                I cannot create, update, delete, archive, send messages, or perform other write actions.
-
-                Suggested next manual action:
-                Open the relevant CRM record and perform the change manually if you have the required permission.
-                """.trim();
+    public String identityAnswer(AssistantLocaleContext locale) {
+        return message(locale, "assistant.static.identity", "I am ContactCore Assistant, a read-only CRM assistant for ContactCore.");
     }
 
-    public String unclearRequestAnswer() {
-        return "I could not understand the request. Ask me about customers, leads, suppliers, contact coverage, CRM summaries, marketing-source performance, recent records, or specific CRM records.";
+    public String capabilitiesAnswer(AssistantLocaleContext locale) {
+        return message(locale, "assistant.static.capabilities", "I can help with read-only CRM questions.");
+    }
+
+    public String unsupportedAnswer(AssistantLocaleContext locale) {
+        return message(locale, "assistant.static.unsupported", "I can only answer from authorized ContactCore CRM data in read-only mode.");
+    }
+
+    public String unclearRequestAnswer(AssistantLocaleContext locale) {
+        return message(locale, "assistant.static.unclear", "I could not understand the request.");
+    }
+
+    public String ambiguousBusinessPartnerTypeAnswer(AssistantLocaleContext locale) {
+        return message(locale, "assistant.static.ambiguousBusinessPartnerType", "Do you mean a customer, supplier, or lead?");
+    }
+
+    public String message(AssistantLocaleContext locale, String key, String fallback, Object... args) {
+        return messages.message(new LocaleContext(locale.locale(), locale.languageName(), locale.direction()), key, fallback, args);
     }
 }

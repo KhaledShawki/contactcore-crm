@@ -8,18 +8,21 @@ import App from './App';
 import { store } from './store/store';
 import ThemeBootstrap from './theme/ThemeBootstrap';
 import { NotificationProvider } from './notifications/NotificationProvider';
+import { LocaleProvider } from './i18n/LocaleProvider';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
   <React.StrictMode>
     <Provider store={store}>
-      <NotificationProvider>
+      <LocaleProvider>
+        <NotificationProvider>
         <ThemeBootstrap>
           <BrowserRouter>
             <App />
           </BrowserRouter>
         </ThemeBootstrap>
       </NotificationProvider>
+      </LocaleProvider>
     </Provider>
   </React.StrictMode>,
 );

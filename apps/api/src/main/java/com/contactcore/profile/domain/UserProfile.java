@@ -90,6 +90,10 @@ public class UserProfile extends BaseEntity {
         this.timezone = timezone;
     }
 
+    public void updateLocale(String locale) {
+        this.locale = locale;
+    }
+
     public void setProfileImageFile(StoredFile profileImageFile) {
         this.profileImageFile = profileImageFile;
     }

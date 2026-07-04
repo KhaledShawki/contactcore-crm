@@ -19,8 +19,11 @@ import AssistantPage from '../assistant/AssistantPage';
 import { useGetUiSettingsQuery } from '../settings/settingsApi';
 import { applyUiSettings } from '../theme/themeSlice';
 import ConnectorSessionPanel from '../connectors/ConnectorSessionPanel';
+import LanguageSelector from '../i18n/LanguageSelector';
+import { useLocale } from '../i18n/LocaleProvider';
 
 export default function AppShell() {
+  const { t } = useLocale();
   const { data: manifest, isLoading, error } = useGetManifestQuery();
   const { data: uiSettings } = useGetUiSettingsQuery();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -34,17 +37,18 @@ export default function AppShell() {
     }
   }, [dispatch, uiSettings]);
 
-  const activeRouteLabel = manifest?.routes.find((route) => pathname === route.path || pathname.startsWith(`${route.path}/`))?.label ?? 'Workspace';
+  const activeRoute = manifest?.routes.find((route) => pathname === route.path || pathname.startsWith(`${route.path}/`));
+  const activeRouteLabel = activeRoute ? t(activeRoute.labelKey ?? `navigation.${activeRoute.screenKey}`, undefined) : t('layout.topbar.workspace');
 
   if (isLoading) return <LoadingState />;
-  if (error || !manifest) return <ErrorState message="Could not load application schema." />;
+  if (error || !manifest) return <ErrorState message={t('layout.errors.schema')} />;
 
   const nav = (
-    <nav className="sidebar-nav" aria-label="Main navigation">
+    <nav className="sidebar-nav" aria-label={t('layout.navigation.main')}>
       {manifest.routes.map((route) => (
         <NavLink key={route.path} to={route.path} onClick={() => setMobileNavOpen(false)}>
           <span className="nav-dot" aria-hidden="true" />
-          <span>{route.label}</span>
+          <span>{t(route.labelKey ?? `navigation.${route.screenKey}`)}</span>
         </NavLink>
       ))}
     </nav>
@@ -57,23 +61,23 @@ export default function AppShell() {
           <div className="brand-mark" aria-hidden="true">CC</div>
           <div>
             <div className="brand-text">{manifest.appName}</div>
-            <span className="brand-subtitle">Standalone CRM</span>
+            <span className="brand-subtitle">{t('layout.sidebar.subtitle')}</span>
           </div>
         </div>
         {nav}
         <div className="sidebar-footer">
-          <span className="signed-in-label">Signed in as</span>
-          <strong>{user?.displayName ?? 'User'}</strong>
-          <BlueButton variant="secondary" onClick={() => dispatch(logout())}>Logout</BlueButton>
+          <span className="signed-in-label">{t('layout.sidebar.signedInAs')}</span>
+          <strong>{user?.displayName ?? t('common.user')}</strong>
+          <BlueButton variant="secondary" onClick={() => dispatch(logout())}>{t('common.actions.logout')}</BlueButton>
         </div>
       </aside>
 
-      {mobileNavOpen && <button type="button" className="mobile-backdrop" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} />}
+      {mobileNavOpen && <button type="button" className="mobile-backdrop" aria-label={t('layout.navigation.close')} onClick={() => setMobileNavOpen(false)} />}
 
       <main className="main-shell">
         <header className="topbar">
           <div className="topbar-left">
-            <button type="button" className="nav-toggle" aria-label="Open navigation" onClick={() => setMobileNavOpen(true)}>☰</button>
+            <button type="button" className="nav-toggle" aria-label={t('layout.navigation.open')} onClick={() => setMobileNavOpen(true)}>☰</button>
             <div>
               <p className="eyebrow">ContactCore</p>
               <h1>{activeRouteLabel}</h1>
@@ -81,8 +85,9 @@ export default function AppShell() {
           </div>
           <div className="topbar-actions">
             <ConnectorSessionPanel />
-            <NavLink className="settings-pill" to="/settings">UI Settings</NavLink>
-            <span className="user-pill">{user?.displayName ?? user?.username ?? 'User'}</span>
+            <LanguageSelector />
+            <NavLink className="settings-pill" to="/settings">{t('layout.topbar.uiSettings')}</NavLink>
+            <span className="user-pill">{user?.displayName ?? user?.username ?? t('common.user')}</span>
           </div>
         </header>
 

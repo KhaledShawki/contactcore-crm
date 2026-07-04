@@ -23,7 +23,7 @@ public class UiSchemaService {
     private static final String COUNTRY_CODE_PATTERN = "^[A-Z]{2}$";
     private static final String COUNTRY_CODE_MESSAGE = "Use a two-letter uppercase country code, for example DE or CH.";
     private static final List<String> STATUS_OPTIONS = List.of("NEW", "ACTIVE", "QUALIFIED", "INACTIVE");
-    private static final List<String> LOCALE_OPTIONS = List.of("en", "de");
+    private static final List<String> LOCALE_OPTIONS = List.of("en", "de", "ar");
     private static final List<String> TIMEZONE_OPTIONS = List.of("Europe/Berlin", "Europe/Zurich", "UTC");
 
     private final LeadSourceRepository leadSources;
@@ -34,15 +34,15 @@ public class UiSchemaService {
 
     public UiManifest manifest() {
         return new UiManifest("ContactCore CRM", List.of(
-                new UiRoute("/dashboard", "Dashboard", "dashboard"),
-                new UiRoute("/customers", "Customers", "customers"),
-                new UiRoute("/leads", "Leads", "leads"),
-                new UiRoute("/suppliers", "Suppliers", "suppliers"),
-                new UiRoute("/marketing-sources", "Marketing Sources", "marketingSources"),
-                new UiRoute("/reports", "Reports", "reports"),
-                new UiRoute("/assistant", "Assistant", "assistant"),
-                new UiRoute("/settings", "Settings", "settings"),
-                new UiRoute("/profile", "Profile", "profile")
+                new UiRoute("/dashboard", "Dashboard", "navigation.dashboard", "dashboard"),
+                new UiRoute("/customers", "Customers", "navigation.customers", "customers"),
+                new UiRoute("/leads", "Leads", "navigation.leads", "leads"),
+                new UiRoute("/suppliers", "Suppliers", "navigation.suppliers", "suppliers"),
+                new UiRoute("/marketing-sources", "Marketing Sources", "navigation.marketingSources", "marketingSources"),
+                new UiRoute("/reports", "Reports", "navigation.reports", "reports"),
+                new UiRoute("/assistant", "Assistant", "navigation.assistant", "assistant"),
+                new UiRoute("/settings", "Settings", "navigation.settings", "settings"),
+                new UiRoute("/profile", "Profile", "navigation.profile", "profile")
         ));
     }
 
@@ -168,7 +168,7 @@ public class UiSchemaService {
     }
 
     private static UiField hidden(String key, String defaultValue) {
-        return new UiField(key, key, "hidden", true, false, false, false, defaultValue, List.of(), UiValidation.none());
+        return new UiField(key, key, labelKey(key), valueKind(key, "hidden"), "hidden", true, false, false, false, defaultValue, List.of(), UiValidation.none());
     }
 
     private static UiField text(String key, String label, boolean required, boolean listVisible, boolean formVisible) {
@@ -184,7 +184,7 @@ public class UiSchemaService {
     }
 
     private static UiField text(String key, String label, boolean required, boolean listVisible, boolean formVisible, boolean readOnly, String defaultValue, UiValidation validation) {
-        return new UiField(key, label, "text", required, listVisible, formVisible, readOnly, defaultValue, List.of(), validation);
+        return new UiField(key, label, labelKey(key), valueKind(key, "text"), "text", required, listVisible, formVisible, readOnly, defaultValue, List.of(), validation);
     }
 
     private static UiField textarea(String key, String label, boolean required, boolean listVisible, boolean formVisible) {
@@ -192,15 +192,15 @@ public class UiSchemaService {
     }
 
     private static UiField textarea(String key, String label, boolean required, boolean listVisible, boolean formVisible, UiValidation validation) {
-        return new UiField(key, label, "textarea", required, listVisible, formVisible, false, null, List.of(), validation);
+        return new UiField(key, label, labelKey(key), valueKind(key, "textarea"), "textarea", required, listVisible, formVisible, false, null, List.of(), validation);
     }
 
     private static UiField number(String key, String label, boolean required, boolean listVisible, boolean formVisible, UiValidation validation) {
-        return new UiField(key, label, "number", required, listVisible, formVisible, false, null, List.of(), validation);
+        return new UiField(key, label, labelKey(key), valueKind(key, "number"), "number", required, listVisible, formVisible, false, null, List.of(), validation);
     }
 
     private static UiField checkbox(String key, String label, boolean required, boolean listVisible, boolean formVisible, UiValidation validation) {
-        return new UiField(key, label, "checkbox", required, listVisible, formVisible, false, null, List.of(), validation);
+        return new UiField(key, label, labelKey(key), valueKind(key, "checkbox"), "checkbox", required, listVisible, formVisible, false, null, List.of(), validation);
     }
 
     private static UiField select(String key, String label, boolean required, boolean listVisible, boolean formVisible, String defaultValue, List<String> options) {
@@ -208,7 +208,24 @@ public class UiSchemaService {
     }
 
     private static UiField select(String key, String label, boolean required, boolean listVisible, boolean formVisible, String defaultValue, List<String> options, UiValidation validation) {
-        return new UiField(key, label, "select", required, listVisible, formVisible, false, defaultValue, options, validation);
+        return new UiField(key, label, labelKey(key), valueKind(key, "select"), "select", required, listVisible, formVisible, false, defaultValue, options, validation);
+    }
+
+
+    private static String labelKey(String key) {
+        return "schema.field." + key;
+    }
+
+    private static String valueKind(String key, String fieldType) {
+        return switch (key) {
+            case "code", "countryCode", "sourceCode", "statusCode", "kind", "timezone", "locale" -> "code";
+            case "email", "primaryEmail" -> "email";
+            case "phone", "primaryPhone", "mobile" -> "phone";
+            case "website" -> "url";
+            case "sortOrder" -> "number";
+            case "addressLine1", "addressLine2", "city", "postalCode", "name", "displayName", "firstName", "lastName", "bio", "notes" -> "sourceText";
+            default -> fieldType.equals("number") ? "number" : "text";
+        };
     }
 
     private static UiValidation maxText(int maxLength) {

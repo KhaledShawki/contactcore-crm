@@ -17,7 +17,9 @@ class NoOpLlmGatewayTest {
                 AssistantRetrievalType.LEADS_WITHOUT_CONTACTS,
                 "system",
                 "context",
-                "question"
+                "question",
+                "en",
+                "ltr"
         ));
 
         assertThat(response.modelName()).isEqualTo("noop-assistant");

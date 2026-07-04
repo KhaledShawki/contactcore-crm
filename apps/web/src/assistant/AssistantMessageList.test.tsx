@@ -1,9 +1,19 @@
 // Copyright (c) Khaled Shawki. All rights reserved.
 
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import AssistantMessageList from './AssistantMessageList';
+import { translate } from '../i18n/translate';
 import type { AssistantMessage } from './assistantTypes';
+
+vi.mock('../i18n/LocaleProvider', () => ({
+  useLocale: () => ({
+    locale: 'en',
+    direction: 'ltr',
+    setAnonymousLocale: vi.fn(),
+    t: (key: string, params?: Record<string, string | number | boolean | null | undefined>) => translate('en', key, params),
+  }),
+}));
 
 describe('AssistantMessageList', () => {
   it('shows an accessible assistant answering indicator while a request is pending', () => {

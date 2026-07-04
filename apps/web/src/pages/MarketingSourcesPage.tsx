@@ -19,6 +19,7 @@ import { createDefaultRecord, toWritablePayload, type SchemaRecord } from '../sc
 import { useGetScreenQuery } from '../schema/schemaApi';
 import type { MarketingSource } from '../schema/types';
 import { useNotifications } from '../notifications/useNotifications';
+import { useLocale } from '../i18n/LocaleProvider';
 
 interface MarketingSourcesState {
   query: string;
@@ -96,6 +97,7 @@ function marketingSourcesReducer(state: MarketingSourcesState, action: Marketing
 }
 
 export default function MarketingSourcesPage() {
+  const { t } = useLocale();
   const [state, dispatch] = useReducer(marketingSourcesReducer, initialMarketingState);
   const { query, page, size, editingId, editorOpen, formValue, savedPayload, error } = state;
   const editorRef = useRef<HTMLDivElement | null>(null);
@@ -131,9 +133,9 @@ export default function MarketingSourcesPage() {
       const nextValue = saved as unknown as SchemaRecord;
       const nextPayload = toWritablePayload(screen, nextValue);
       dispatch({ type: 'sourceSaved', editingId: saved.id, formValue: nextValue, savedPayload: nextPayload });
-      notifySuccess('Marketing source saved.');
+      notifySuccess(t('marketing.notifications.saved'));
     } catch {
-      const message = 'Could not save the marketing source. Check required fields and duplicate codes.';
+      const message = t('marketing.errors.save');
       dispatch({ type: 'errorChanged', error: message });
       notifyError(message);
     }
@@ -177,25 +179,25 @@ export default function MarketingSourcesPage() {
     await runArchiveTask(row.id, async () => {
       try {
         await archiveSource(row.id as number).unwrap();
-        notifySuccess('Marketing source archived.');
+        notifySuccess(t('marketing.notifications.archived'));
         if (editingId === row.id) {
           closeEditor();
         }
       } catch {
-        notifyError('Could not archive the marketing source. Try again.');
+        notifyError(t('marketing.errors.archive'));
       }
     });
-  }, [archiveSource, closeEditor, editingId, notifyError, notifySuccess, runArchiveTask]);
+  }, [archiveSource, closeEditor, editingId, notifyError, notifySuccess, runArchiveTask, t]);
 
   const exportReport = useCallback(async () => {
     try {
       const report = await downloadReport({ query }).unwrap();
       saveDownloadedReport(report);
-      notifySuccess('Marketing sources report downloaded.');
+      notifySuccess(t('marketing.notifications.downloaded'));
     } catch {
-      notifyError('Could not generate the marketing sources report. Try again.');
+      notifyError(t('marketing.errors.export'));
     }
-  }, [downloadReport, notifyError, notifySuccess, query]);
+  }, [downloadReport, notifyError, notifySuccess, query, t]);
 
   const columns = useMemo<BlueColumn<MarketingSource>[]>(() => {
     if (!screen) return [];
@@ -205,7 +207,7 @@ export default function MarketingSourcesPage() {
       if (!field.listVisible) continue;
       schemaColumns.push({
         key: field.key,
-        header: field.label,
+        header: t(field.labelKey ?? `schema.field.${field.key}`),
         render: (row: MarketingSource) => String((row as unknown as Record<string, unknown>)[field.key] ?? ''),
       });
     }
@@ -214,27 +216,27 @@ export default function MarketingSourcesPage() {
       ...schemaColumns,
       {
         key: 'actions',
-        header: 'Actions',
+        header: t('common.actions.open'),
         align: 'right',
         render: (row) => (
           <div className="row-actions">
-            <button type="button" className="link-button" onClick={() => startEdit(row)}>Edit</button>
+            <button type="button" className="link-button" onClick={() => startEdit(row)}>{t('common.actions.edit')}</button>
             <button
               type="button"
               className="link-button danger-link"
               disabled={row.id ? isArchiveRunning(row.id) : false}
               onClick={() => { void archiveMarketingSource(row); }}
             >
-              {row.id && isArchiveRunning(row.id) ? 'Archiving...' : 'Archive'}
+              {row.id && isArchiveRunning(row.id) ? t('crm.actions.archiving') : t('crm.actions.archive')}
             </button>
           </div>
         ),
       },
     ];
-  }, [archiveMarketingSource, isArchiveRunning, screen, startEdit]);
+  }, [archiveMarketingSource, isArchiveRunning, screen, startEdit, t]);
 
   if (screenLoading) return <LoadingState />;
-  if (screenError || rowsError || !screen) return <ErrorState message="Could not load marketing sources." />;
+  if (screenError || rowsError || !screen) return <ErrorState message={t('marketing.errors.load')} />;
 
   const pageData = data ?? { items: [], page: 0, size, totalElements: 0, totalPages: 0 };
   const saveBusy = saving || saveTask.running;
@@ -242,25 +244,25 @@ export default function MarketingSourcesPage() {
   return (
     <div className={`split-page ${editorOpen ? 'split-page--with-editor' : 'split-page--list-only'}`.trim()}>
       <BlueCard
-        eyebrow="Marketing"
+        eyebrow={t('marketing.eyebrow')}
         title={screen.title}
         action={(
           <div className="card-actions">
             <BlueButton type="button" variant="secondary" disabled={reportDownloading} onClick={() => { void exportReport(); }}>
-              {reportDownloading ? 'Exporting...' : 'Export XLSX'}
+              {reportDownloading ? t('crm.actions.exporting') : t('crm.actions.export')}
             </BlueButton>
-            <BlueButton onClick={startCreate}>New</BlueButton>
+            <BlueButton onClick={startCreate}>{t('crm.actions.new')}</BlueButton>
           </div>
         )}
       >
         <div className="list-toolbar">
           <BlueInput
-            label="Search"
-            placeholder="Search by code or name"
+            label={t('crm.search.label')}
+            placeholder={t('marketing.search.placeholder')}
             value={query}
             onChange={(event) => dispatch({ type: 'searchChanged', query: event.target.value })}
           />
-          {isFetching && <span className="refresh-pill">Refreshing</span>}
+          {isFetching && <span className="refresh-pill">{t('common.status.refreshing')}</span>}
         </div>
         <BlueTable columns={columns} rows={pageData.items} rowKey={(row) => row.id ?? row.code} />
         <BluePagination
@@ -277,9 +279,9 @@ export default function MarketingSourcesPage() {
       {editorOpen && (
         <div ref={editorRef}>
           <BlueCard
-            eyebrow="Editor"
-            title={editingId ? 'Edit Marketing Source' : 'New Marketing Source'}
-            action={<BlueButton type="button" variant="secondary" onClick={closeEditor}>Cancel</BlueButton>}
+            eyebrow={t('marketing.editor.eyebrow')}
+            title={editingId ? t('marketing.editor.editTitle') : t('marketing.editor.newTitle')}
+            action={<BlueButton type="button" variant="secondary" onClick={closeEditor}>{t('common.actions.cancel')}</BlueButton>}
           >
             {error && <BlueAlert message={error} />}
             <SchemaForm
@@ -288,10 +290,10 @@ export default function MarketingSourcesPage() {
               value={formValue}
               onChange={(nextValue) => dispatch({ type: 'formChanged', formValue: nextValue })}
               onSubmit={() => { void saveTask.run(); }}
-              submitLabel="Save"
+              submitLabel={t('common.actions.save')}
               busy={saveBusy}
               canSubmit={formModified}
-              submitDisabledReason="No changes to save."
+              submitDisabledReason={t('schema.form.noChanges')}
             />
           </BlueCard>
         </div>

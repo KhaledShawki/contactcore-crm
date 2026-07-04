@@ -23,6 +23,7 @@ import { useGetScreenQuery } from '../schema/schemaApi';
 import type { BusinessPartner, UiScreen } from '../schema/types';
 import { useMemo, useState } from 'react';
 import { useNotifications } from '../notifications/useNotifications';
+import { useLocale } from '../i18n/LocaleProvider';
 
 interface Props {
   screenKey: string;
@@ -38,6 +39,7 @@ interface SchemaFormEditorProps {
 }
 
 function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connectorMode = false, connectorName = null }: SchemaFormEditorProps) {
+  const { t } = useLocale();
   const navigate = useNavigate();
   const { notifySuccess, notifyError } = useNotifications();
   const [formValue, setFormValue] = useState<SchemaRecord>(initialValue);
@@ -48,7 +50,7 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
   const [uploadDocument, { isLoading: uploadingDocument }] = useUploadBusinessPartnerDocumentMutation();
   const [archiveDocument] = useArchiveBusinessPartnerDocumentMutation();
   const archiveDocumentTask = useSingleFlightByKey<number>();
-  const entityLabel = singularTitle(screen.title);
+  const entityLabel = singularTitle(t(`navigation.${screen.key}`));
   const currentPayload = useMemo(() => toWritablePayload(screen, formValue), [formValue, screen]);
   const formModified = isFormModified(savedPayload, currentPayload);
 
@@ -64,10 +66,10 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
       const nextPayload = toWritablePayload(screen, nextValue);
       setFormValue(nextValue);
       setSavedPayload(nextPayload);
-      notifySuccess(`${entityLabel} saved.`);
+      notifySuccess(t('crm.notifications.saved', { entity: entityLabel }));
       navigate(`/${screenKey}/${saved.id}`, { replace: true });
     } catch {
-      const message = `Could not save the ${entityLabel.toLowerCase()}. Check required fields and duplicate codes.`;
+      const message = t('profile.saveFailed');
       setError(message);
       notifyError(message);
     }
@@ -77,9 +79,9 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
     if (!file || !numericId || uploadingDocument) return;
     try {
       await uploadDocument({ businessPartnerId: numericId, file }).unwrap();
-      notifySuccess('Document uploaded.');
+      notifySuccess(t('documents.notifications.uploaded'));
     } catch {
-      notifyError('Could not upload the document. Check the file and try again.');
+      notifyError(t('documents.errors.upload'));
     }
   }
 
@@ -88,9 +90,9 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
     await archiveDocumentTask.run(documentId, async () => {
       try {
         await archiveDocument({ businessPartnerId: numericId, documentId }).unwrap();
-        notifySuccess('Document archived.');
+        notifySuccess(t('documents.notifications.archived'));
       } catch {
-        notifyError('Could not archive the document. Try again.');
+        notifyError(t('documents.errors.archive'));
       }
     });
   }
@@ -99,21 +101,21 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
 
   return (
     <BlueCard
-      eyebrow={connectorMode ? 'CRM connector' : 'CRM'}
-      title={connectorMode ? `${entityLabel} from ${connectorName ?? 'connector'}` : numericId ? `Edit ${entityLabel}` : `New ${entityLabel}`}
-      action={<Link to={`/${screenKey}`}>Back</Link>}
+      eyebrow={connectorMode ? t('connectors.mode.eyebrow') : t('crm.eyebrow')}
+      title={connectorMode ? t('crm.form.fromConnector', { entity: entityLabel, connector: connectorName ?? 'connector' }) : numericId ? t('crm.form.edit', { entity: entityLabel }) : t('crm.form.new', { entity: entityLabel })}
+      action={<Link to={`/${screenKey}`}>{t('crm.actions.back')}</Link>}
     >
       {error && <BlueAlert message={error} />}
-      {connectorMode && <BlueAlert message="Read-only connector mode is active. This record is loaded from the selected CRM connector, not from the local ContactCore database." />}
+      {connectorMode && <BlueAlert message={t('connectors.mode.recordHint')} />}
       <SchemaForm
         screen={screen}
         value={formValue}
         onChange={setFormValue}
         onSubmit={() => { void saveTask.run(); }}
-        submitLabel="Save"
+        submitLabel={t('common.actions.save')}
         busy={saveBusy}
         canSubmit={formModified}
-        submitDisabledReason="No changes to save."
+        submitDisabledReason={t('schema.form.noChanges')}
         readOnly={connectorMode}
       />
 
@@ -122,10 +124,10 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
       {numericId && !connectorMode && (
         <section className="documents-panel">
           <header className="subheader">
-            <h2>Documents</h2>
-            <input type="file" aria-label="Upload document" disabled={uploadingDocument} onChange={(event) => upload(event.target.files?.[0] ?? null)} />
+            <h2>{t('documents.title')}</h2>
+            <input type="file" aria-label={t('documents.actions.upload')} disabled={uploadingDocument} onChange={(event) => upload(event.target.files?.[0] ?? null)} />
           </header>
-          {documents.length === 0 ? <p className="hint">No documents uploaded.</p> : (
+          {documents.length === 0 ? <p className="hint">{t('documents.empty')}</p> : (
             <ul>
               {documents.map((document) => (
                 <li key={document.id}>
@@ -138,7 +140,7 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
                       disabled={archiveDocumentTask.isRunning(document.id)}
                       onClick={() => archiveBusinessPartnerDocument(document.id)}
                     >
-                      {archiveDocumentTask.isRunning(document.id) ? 'Archiving...' : 'Archive'}
+                      {archiveDocumentTask.isRunning(document.id) ? t('crm.actions.archiving') : t('crm.actions.archive')}
                     </BlueButton>
                   </div>
                 </li>
@@ -173,9 +175,11 @@ export default function SchemaFormPage({ screenKey }: Props) {
   const recordLoading = connectorMode ? connectorRecord.isLoading : localRecord.isLoading;
   const recordError = connectorMode ? connectorRecord.error : localRecord.error;
 
+  const { t } = useLocale();
+
   if (screenLoading || recordLoading) return <LoadingState />;
-  if (connectorMode && isNew) return <ErrorState message="Creating records is not supported while a read-only CRM connector is active." />;
-  if (screenError || recordError || !screen) return <ErrorState message="Could not load form." />;
+  if (connectorMode && isNew) return <ErrorState message={t('connectors.mode.recordHint')} />;
+  if (screenError || recordError || !screen) return <ErrorState message={t('crm.errors.loadRecord')} />;
 
   const editorKey = `${screenKey}:${connectorMode ? recordKey : numericId ?? 'new'}:${record?.externalId ?? record?.id ?? 'default'}`;
 
