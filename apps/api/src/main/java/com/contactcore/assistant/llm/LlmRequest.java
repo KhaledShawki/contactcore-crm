@@ -9,5 +9,7 @@ public record LlmRequest(
         AssistantRetrievalType retrievalType,
         String systemPrompt,
         String contextText,
-        String userMessage
+        String userMessage,
+        String locale,
+        String textDirection
 ) {}

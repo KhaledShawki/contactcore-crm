@@ -17,6 +17,7 @@ import com.contactcore.assistant.domain.AssistantMessage;
 import com.contactcore.assistant.domain.AssistantMessageRepository;
 import com.contactcore.assistant.domain.AssistantMessageRole;
 import com.contactcore.assistant.application.answer.AssistantAnswerGenerationResult;
+import com.contactcore.assistant.application.i18n.AssistantLocaleContextResolver;
 import com.contactcore.assistant.application.answer.AssistantAnswerGenerationService;
 import com.contactcore.assistant.application.answer.AssistantAnswerSource;
 import com.contactcore.assistant.application.evidence.AssistantEvidence;
@@ -29,6 +30,9 @@ import com.contactcore.assistant.retrieval.AssistantSearchResult;
 import com.contactcore.assistant.security.AssistantInputGuard;
 import com.contactcore.assistant.tool.AssistantToolOrchestrator;
 import com.contactcore.shared.api.InvalidRequestException;
+import com.contactcore.shared.localization.LocaleContext;
+import com.contactcore.shared.localization.LocaleContextResolver;
+import com.contactcore.shared.localization.SupportedLocale;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -59,6 +63,10 @@ class AssistantApplicationServiceTest {
     private AssistantAuditService auditService;
     @Mock
     private AssistantPersistenceService persistenceService;
+    @Mock
+    private LocaleContextResolver localeContextResolver;
+    @Mock
+    private AssistantLocaleContextResolver assistantLocaleContextResolver;
 
     @Test
     void sendsMessageThroughToolsContextAndLlm() {
@@ -80,7 +88,7 @@ class AssistantApplicationServiceTest {
         when(queryPlanner.plan("Which leads need follow-up?")).thenReturn(plan);
         when(toolOrchestrator.execute(1L, plan)).thenReturn(retrieval);
         when(evidenceGate.assess(plan, retrieval)).thenReturn(new AssistantEvidence(retrieval, false, "test"));
-        when(answerGenerationService.generate(plan, retrieval, "Which leads need follow-up?"))
+        when(answerGenerationService.generate(org.mockito.Mockito.eq(plan), org.mockito.Mockito.eq(retrieval), org.mockito.Mockito.eq("Which leads need follow-up?"), any(AssistantLocaleContext.class)))
                 .thenReturn(AssistantAnswerGenerationResult.success(AssistantAnswerSource.LLM, "Answer", "test-model"));
         AssistantMessage assistantMessage = new AssistantMessage(conversation, AssistantMessageRole.ASSISTANT, "Answer");
         when(persistenceService.saveAssistantMessage(1L, 10L, "Answer", List.of(reference))).thenReturn(assistantMessage);
@@ -122,7 +130,7 @@ class AssistantApplicationServiceTest {
                 .thenReturn(new AssistantPersistenceService.AssistantUserMessagePersistResult(conversation, userMessage));
         when(queryPlanner.plan("hi")).thenReturn(plan);
         when(evidenceGate.assess(plan, retrieval)).thenReturn(new AssistantEvidence(retrieval, true, "no evidence required"));
-        when(answerGenerationService.generate(plan, retrieval, "hi"))
+        when(answerGenerationService.generate(org.mockito.Mockito.eq(plan), org.mockito.Mockito.eq(retrieval), org.mockito.Mockito.eq("hi"), any(AssistantLocaleContext.class)))
                 .thenReturn(AssistantAnswerGenerationResult.success(AssistantAnswerSource.DETERMINISTIC, "Hi. I can help with CRM questions.", "contactcore-deterministic"));
         AssistantMessage assistantMessage = new AssistantMessage(conversation, AssistantMessageRole.ASSISTANT, "Hi. I can help with CRM questions.");
         when(persistenceService.saveAssistantMessage(1L, 12L, "Hi. I can help with CRM questions.", List.of())).thenReturn(assistantMessage);
@@ -164,7 +172,7 @@ class AssistantApplicationServiceTest {
         when(queryPlanner.plan("Find Meyer")).thenReturn(plan);
         when(toolOrchestrator.execute(1L, plan)).thenReturn(retrieval);
         when(evidenceGate.assess(plan, retrieval)).thenReturn(new AssistantEvidence(retrieval, false, "test"));
-        when(answerGenerationService.generate(plan, retrieval, "Find Meyer"))
+        when(answerGenerationService.generate(org.mockito.Mockito.eq(plan), org.mockito.Mockito.eq(retrieval), org.mockito.Mockito.eq("Find Meyer"), any(AssistantLocaleContext.class)))
                 .thenReturn(AssistantAnswerGenerationResult.success(AssistantAnswerSource.LLM, "Answer", "test-model"));
         AssistantMessage assistantMessage = new AssistantMessage(conversation, AssistantMessageRole.ASSISTANT, "Answer");
         when(persistenceService.saveAssistantMessage(org.mockito.Mockito.eq(1L), org.mockito.Mockito.eq(11L), org.mockito.Mockito.eq("Answer"), any())).thenReturn(assistantMessage);
@@ -178,6 +186,10 @@ class AssistantApplicationServiceTest {
     }
 
     private AssistantApplicationService service(AssistantProperties properties) {
+        LocaleContext selectedLocale = new LocaleContext(SupportedLocale.EN);
+        AssistantLocaleContext assistantLocale = new AssistantLocaleContext(selectedLocale);
+        org.mockito.Mockito.lenient().when(localeContextResolver.resolveForUser(1L)).thenReturn(selectedLocale);
+        org.mockito.Mockito.lenient().when(assistantLocaleContextResolver.resolve(org.mockito.Mockito.anyString(), org.mockito.Mockito.any(LocaleContext.class))).thenReturn(assistantLocale);
         return new AssistantApplicationService(
                 properties,
                 conversations,
@@ -189,7 +201,9 @@ class AssistantApplicationServiceTest {
                 evidenceGate,
                 answerGenerationService,
                 auditService,
-                persistenceService
+                persistenceService,
+                localeContextResolver,
+                assistantLocaleContextResolver
         );
     }
 

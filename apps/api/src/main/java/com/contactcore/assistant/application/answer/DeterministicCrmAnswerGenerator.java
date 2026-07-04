@@ -2,6 +2,7 @@
 
 package com.contactcore.assistant.application.answer;
 
+import com.contactcore.assistant.application.AssistantLocaleContext;
 import com.contactcore.assistant.application.planning.AssistantIntent;
 import com.contactcore.assistant.retrieval.AssistantPlan;
 import com.contactcore.assistant.retrieval.AssistantRecordReference;
@@ -62,194 +63,236 @@ public class DeterministicCrmAnswerGenerator implements AssistantAnswerGenerator
         return DETERMINISTIC_INTENTS.contains(plan.intent()) || SUPPORTED_TYPES.contains(plan.retrievalType());
     }
 
-    @Override
     public AssistantAnswerGenerationResult generate(AssistantPlan plan, AssistantRetrievalResult retrieval, String userMessage) {
-        return AssistantAnswerGenerationResult.success(AssistantAnswerSource.DETERMINISTIC, buildAnswer(plan, retrieval), MODEL_NAME);
+        return generate(plan, retrieval, userMessage, new AssistantLocaleContext(com.contactcore.shared.localization.SupportedLocale.DEFAULT, com.contactcore.shared.localization.SupportedLocale.DEFAULT.languageName(), com.contactcore.shared.localization.SupportedLocale.DEFAULT.direction()));
     }
 
-    String buildAnswer(AssistantPlan plan, AssistantRetrievalResult retrieval) {
+    @Override
+    public AssistantAnswerGenerationResult generate(AssistantPlan plan, AssistantRetrievalResult retrieval, String userMessage, AssistantLocaleContext locale) {
+        return AssistantAnswerGenerationResult.success(AssistantAnswerSource.DETERMINISTIC, buildAnswer(plan, retrieval, locale), MODEL_NAME);
+    }
+
+    String buildAnswer(AssistantPlan plan, AssistantRetrievalResult retrieval, AssistantLocaleContext locale) {
         if (plan.intent() == AssistantIntent.GREETING) {
-            return staticResponses.greetingAnswer();
+            return staticResponses.greetingAnswer(locale);
         }
         if (plan.intent() == AssistantIntent.ASSISTANT_IDENTITY) {
-            return staticResponses.identityAnswer();
+            return staticResponses.identityAnswer(locale);
         }
         if (plan.intent() == AssistantIntent.ASSISTANT_CAPABILITIES) {
-            return staticResponses.capabilitiesAnswer();
+            return staticResponses.capabilitiesAnswer(locale);
         }
         if (plan.intent() == AssistantIntent.UNCLEAR_REQUEST) {
-            return staticResponses.unclearRequestAnswer();
+            if (plan.userIntent().startsWith("UNCLEAR_REQUEST conflicting business partner types")) {
+                return staticResponses.ambiguousBusinessPartnerTypeAnswer(locale);
+            }
+            return staticResponses.unclearRequestAnswer(locale);
         }
         if (plan.intent() == AssistantIntent.UNSUPPORTED) {
-            return staticResponses.unsupportedAnswer();
+            return staticResponses.unsupportedAnswer(locale);
         }
         if (plan.intent() == AssistantIntent.BUSINESS_PARTNER_EXISTENCE) {
-            return existenceAnswer(plan, retrieval.results());
+            return existenceAnswer(plan, retrieval.results(), locale);
         }
 
         List<AssistantSearchResult> records = retrieval.results();
         if (records.isEmpty()) {
-            return emptyAnswer(plan);
+            return emptyAnswer(plan, locale);
         }
 
-        String heading = headingFor(plan, records.size());
+        String heading = headingFor(plan, records.size(), locale);
         String recordLines = records.stream()
                 .limit(MAX_RECORDS_IN_TEXT)
-                .map(this::recordLine)
+                .map(result -> recordLine(result, locale))
                 .collect(Collectors.joining("\n"));
         String truncationNotice = records.size() > MAX_RECORDS_IN_TEXT
-                ? "\n\nOnly the first " + MAX_RECORDS_IN_TEXT + " records are shown here. Use the references to inspect the rest."
+                ? "\n\n" + message(locale, "assistant.answer.truncated", "Only the first {0} records are shown here. Use the references to inspect the rest.", MAX_RECORDS_IN_TEXT)
                 : "";
-        String toolSummary = toolSummary(retrieval.toolResults());
+        String toolSummary = toolSummary(retrieval.toolResults(), locale);
 
         return """
                 %s
 
-                Key records:
+                %s
                 %s%s
 
-                %sSuggested next manual action:
-                Open the referenced source records and review the relevant data manually.
-                """.formatted(heading, recordLines, truncationNotice, toolSummary).trim();
+                %s%s
+                """.formatted(
+                heading,
+                message(locale, "assistant.answer.keyRecords", "Key records:"),
+                recordLines,
+                truncationNotice,
+                toolSummary,
+                suggestedAction(locale, "assistant.answer.openReferences", "Open the referenced source records and review the relevant data manually.")
+        ).trim();
     }
 
-    private String existenceAnswer(AssistantPlan plan, List<AssistantSearchResult> records) {
+    private String existenceAnswer(AssistantPlan plan, List<AssistantSearchResult> records, AssistantLocaleContext locale) {
         String target = targetLabel(plan);
         if (records.isEmpty()) {
             return """
-                    No. I did not find an active %s matching "%s".
+                    %s
 
-                    Suggested next manual action:
-                    Check spelling, archived records, or try searching by code, email, or contact person.
-                    """.formatted(kindLabel(plan), target).trim();
+                    %s
+                    """.formatted(
+                    message(locale, "assistant.answer.existence.notFound", "No. I did not find an active {0} matching \"{1}\".", kindLabel(plan, locale), target),
+                    suggestedAction(locale, "assistant.answer.checkSpelling", "Check spelling, archived records, or try searching by code, email, or contact person.")
+            ).trim();
         }
 
         String recordLines = records.stream()
                 .limit(MAX_RECORDS_IN_TEXT)
-                .map(this::recordLine)
+                .map(result -> recordLine(result, locale))
                 .collect(Collectors.joining("\n"));
-        String plural = records.size() == 1 ? "" : "s";
         String truncationNotice = records.size() > MAX_RECORDS_IN_TEXT
-                ? "\n\nOnly the first " + MAX_RECORDS_IN_TEXT + " records are shown here. Use the references to inspect the rest."
+                ? "\n\n" + message(locale, "assistant.answer.truncated", "Only the first {0} records are shown here. Use the references to inspect the rest.", MAX_RECORDS_IN_TEXT)
                 : "";
 
         return """
-                Yes. I found %d active %s%s matching "%s".
+                %s
 
-                Key records:
+                %s
                 %s%s
 
-                Suggested next manual action:
-                Open the referenced source record%s to verify the details.
-                """.formatted(records.size(), kindLabel(plan), plural, target, recordLines, truncationNotice, plural).trim();
+                %s
+                """.formatted(
+                message(locale, "assistant.answer.existence.found", "Yes. I found {0} active {1} matching \"{2}\".", records.size(), kindLabel(plan, locale), target),
+                message(locale, "assistant.answer.keyRecords", "Key records:"),
+                recordLines,
+                truncationNotice,
+                suggestedAction(locale, "assistant.answer.openReferenceToVerify", "Open the referenced source records to verify the details.")
+        ).trim();
     }
 
-    private String emptyAnswer(AssistantPlan plan) {
+    private String emptyAnswer(AssistantPlan plan, AssistantLocaleContext locale) {
         return switch (plan.intent()) {
             case LEADS_MISSING_CONTACTS -> """
-                    I did not find active leads without contact persons.
+                    %s
 
-                    Suggested next manual action:
-                    Check archived leads or verify that the relevant leads exist if you expected results.
-                    """.trim();
+                    %s
+                    """.formatted(
+                    message(locale, "assistant.answer.empty.leadsMissingContacts", "I did not find active leads without contact persons."),
+                    suggestedAction(locale, "assistant.answer.empty.leadsMissingContactsAction", "Check archived leads or verify that the relevant leads exist if you expected results.")
+            ).trim();
             case LEADS_NEED_FOLLOW_UP -> """
-                    I did not find active leads that currently need follow-up based on the configured stale-lead criteria.
+                    %s
 
-                    Suggested next manual action:
-                    Review the lead follow-up threshold if you expected older open leads to appear.
-                    """.trim();
+                    %s
+                    """.formatted(
+                    message(locale, "assistant.answer.empty.staleLeads", "I did not find active leads that currently need follow-up based on the configured stale-lead criteria."),
+                    suggestedAction(locale, "assistant.answer.empty.staleLeadsAction", "Review the lead follow-up threshold if you expected older open leads to appear.")
+            ).trim();
             case BUSINESS_PARTNER_SEARCH, BUSINESS_PARTNER_DETAILS -> """
-                    I did not find matching active CRM records for "%s".
+                    %s
 
-                    Suggested next manual action:
-                    Try a more specific name, code, email, contact person, or marketing source.
-                    """.formatted(targetLabel(plan)).trim();
+                    %s
+                    """.formatted(
+                    message(locale, "assistant.answer.empty.businessPartner", "I did not find matching active CRM records for \"{0}\".", targetLabel(plan)),
+                    suggestedAction(locale, "assistant.answer.trySpecific", "Try a more specific name, code, email, contact person, or marketing source.")
+            ).trim();
             default -> """
-                    I did not find matching active CRM data for this request.
+                    %s
 
-                    Suggested next manual action:
-                    Check whether matching records are archived or whether the CRM data exists.
-                    """.trim();
+                    %s
+                    """.formatted(
+                    message(locale, "assistant.answer.noMatchingData", "I did not find matching active CRM data for this request."),
+                    suggestedAction(locale, "assistant.answer.checkArchived", "Check whether matching records are archived or whether the CRM data exists.")
+            ).trim();
         };
     }
 
-    private String headingFor(AssistantPlan plan, int recordCount) {
-        String noun = recordCount == 1 ? "record" : "records";
+    private String headingFor(AssistantPlan plan, int recordCount, AssistantLocaleContext locale) {
         return switch (plan.intent()) {
-            case LEADS_MISSING_CONTACTS -> "I found " + recordCount + " active lead" + plural(recordCount) + " without contact persons.";
-            case LEADS_NEED_FOLLOW_UP -> "I found " + recordCount + " lead" + plural(recordCount) + " that may need follow-up.";
-            case MARKETING_PERFORMANCE -> "I found marketing-source performance data for " + recordCount + " source" + plural(recordCount) + ".";
-            case CONTACT_COVERAGE -> "I found contact-coverage data for " + recordCount + " CRM categor" + (recordCount == 1 ? "y" : "ies") + ".";
-            case RECENT_RECORDS -> "I found " + recordCount + " recently created CRM " + noun + ".";
-            case STATUS_BREAKDOWN -> "I found " + recordCount + " CRM status breakdown " + noun + ".";
-            case LEAD_PIPELINE -> "I found lead-pipeline data for " + recordCount + " status group" + plural(recordCount) + ".";
-            case BUSINESS_PARTNER_SEARCH -> "I found " + recordCount + " matching active CRM " + noun + " for \"" + targetLabel(plan) + "\".";
-            case BUSINESS_PARTNER_DETAILS -> "I found details for " + recordCount + " active CRM " + noun + " matching \"" + targetLabel(plan) + "\".";
-            default -> "I found " + recordCount + " matching CRM " + noun + ".";
+            case LEADS_MISSING_CONTACTS -> message(locale, "assistant.answer.heading.leadsMissingContacts", "I found {0} active leads without contact persons.", recordCount);
+            case LEADS_NEED_FOLLOW_UP -> message(locale, "assistant.answer.heading.staleLeads", "I found {0} leads that may need follow-up.", recordCount);
+            case MARKETING_PERFORMANCE -> message(locale, "assistant.answer.heading.marketing", "I found marketing-source performance data for {0} sources.", recordCount);
+            case CONTACT_COVERAGE -> message(locale, "assistant.answer.heading.contactCoverage", "I found contact-coverage data for {0} CRM categories.", recordCount);
+            case RECENT_RECORDS -> message(locale, "assistant.answer.heading.recentRecords", "I found {0} recently created CRM records.", recordCount);
+            case STATUS_BREAKDOWN -> message(locale, "assistant.answer.heading.statusBreakdown", "I found {0} CRM status breakdown records.", recordCount);
+            case LEAD_PIPELINE -> message(locale, "assistant.answer.heading.leadPipeline", "I found lead-pipeline data for {0} status groups.", recordCount);
+            case BUSINESS_PARTNER_SEARCH -> message(locale, "assistant.answer.heading.search", "I found {0} matching active CRM records for \"{1}\".", recordCount, targetLabel(plan));
+            case BUSINESS_PARTNER_DETAILS -> message(locale, "assistant.answer.heading.details", "I found details for {0} active CRM records matching \"{1}\".", recordCount, targetLabel(plan));
+            default -> message(locale, "assistant.answer.heading.generic", "I found {0} matching CRM records.", recordCount);
         };
     }
 
-    private String recordLine(AssistantSearchResult result) {
+    private String recordLine(AssistantSearchResult result, AssistantLocaleContext locale) {
         AssistantRecordReference reference = result.reference();
         Map<String, String> fields = result.fields();
         StringBuilder builder = new StringBuilder("- ").append(reference.label());
 
-        appendField(builder, fields, "Kind", "kind");
-        appendField(builder, fields, "Status", "status");
-        appendField(builder, fields, "Marketing source", "source");
-        appendField(builder, fields, "Primary email", "email");
-        appendField(builder, fields, "Primary phone", "phone");
-        appendField(builder, fields, "Website", "website");
-        appendField(builder, fields, "External code", "external code");
-        appendField(builder, fields, "Source system", "source system");
-        appendField(builder, fields, "Connector", "connector");
-        appendField(builder, fields, "Currency", "currency");
-        appendField(builder, fields, "Balance", "balance");
-        appendField(builder, fields, "Primary contact", "primary contact");
-        appendField(builder, fields, "Contact persons", "contact persons");
-        appendField(builder, fields, "Lead count", "lead count");
-        appendField(builder, fields, "Qualified leads", "qualified leads");
-        appendField(builder, fields, "Open leads", "open leads");
-        appendField(builder, fields, "Records without contact persons", "without contacts");
-        appendField(builder, fields, "Record count", "record count");
-        appendField(builder, fields, "Active records", "active records");
-        appendField(builder, fields, "Qualified records", "qualified records");
-        appendField(builder, fields, "Created in last 30 days", "created last 30 days");
-        appendField(builder, fields, "Stale leads", "stale leads");
-        appendField(builder, fields, "Leads without contact persons", "leads without contact persons");
-        appendField(builder, fields, "Last updated", "last updated");
+        appendField(builder, fields, "Kind", fieldLabel(locale, "kind", "kind"), locale);
+        appendField(builder, fields, "Status", fieldLabel(locale, "status", "status"), locale);
+        appendField(builder, fields, "Marketing source", fieldLabel(locale, "source", "source"), locale);
+        appendField(builder, fields, "Primary email", fieldLabel(locale, "email", "email"), locale);
+        appendField(builder, fields, "Primary phone", fieldLabel(locale, "phone", "phone"), locale);
+        appendField(builder, fields, "Website", fieldLabel(locale, "website", "website"), locale);
+        appendField(builder, fields, "External code", fieldLabel(locale, "externalCode", "external code"), locale);
+        appendField(builder, fields, "Source system", fieldLabel(locale, "sourceSystem", "source system"), locale);
+        appendField(builder, fields, "Connector", fieldLabel(locale, "connector", "connector"), locale);
+        appendField(builder, fields, "Currency", fieldLabel(locale, "currency", "currency"), locale);
+        appendField(builder, fields, "Balance", fieldLabel(locale, "balance", "balance"), locale);
+        appendField(builder, fields, "Primary contact", fieldLabel(locale, "primaryContact", "primary contact"), locale);
+        appendField(builder, fields, "Contact persons", fieldLabel(locale, "contactPersons", "contact persons"), locale);
+        appendField(builder, fields, "Lead count", fieldLabel(locale, "leadCount", "lead count"), locale);
+        appendField(builder, fields, "Qualified leads", fieldLabel(locale, "qualifiedLeads", "qualified leads"), locale);
+        appendField(builder, fields, "Open leads", fieldLabel(locale, "openLeads", "open leads"), locale);
+        appendField(builder, fields, "Records without contact persons", fieldLabel(locale, "withoutContacts", "without contacts"), locale);
+        appendField(builder, fields, "Record count", fieldLabel(locale, "recordCount", "record count"), locale);
+        appendField(builder, fields, "Active records", fieldLabel(locale, "activeRecords", "active records"), locale);
+        appendField(builder, fields, "Qualified records", fieldLabel(locale, "qualifiedRecords", "qualified records"), locale);
+        appendField(builder, fields, "Created in last 30 days", fieldLabel(locale, "createdLast30Days", "created last 30 days"), locale);
+        appendField(builder, fields, "Stale leads", fieldLabel(locale, "staleLeads", "stale leads"), locale);
+        appendField(builder, fields, "Leads without contact persons", fieldLabel(locale, "leadsWithoutContactPersons", "leads without contact persons"), locale);
+        appendField(builder, fields, "Last updated", fieldLabel(locale, "lastUpdated", "last updated"), locale);
 
         return builder.toString();
     }
 
-    private void appendField(StringBuilder builder, Map<String, String> fields, String key, String label) {
+    private void appendField(StringBuilder builder, Map<String, String> fields, String key, String label, AssistantLocaleContext locale) {
         String value = fields.get(key);
         if (value != null && !value.isBlank()) {
             builder.append(builder.indexOf(" — ") < 0 ? " — " : ", ")
                     .append(label)
                     .append(": ")
-                    .append(value);
+                    .append(localizedFieldValue(key, value, locale));
         }
     }
 
-    private String toolSummary(List<AssistantToolResult> toolResults) {
+    private String localizedFieldValue(String key, String value, AssistantLocaleContext locale) {
+        if ("Kind".equals(key)) {
+            String normalized = value.trim().toUpperCase(Locale.ROOT).replace(' ', '_');
+            return message(locale, "assistant.kind." + normalized, value);
+        }
+        return value;
+    }
+
+    private String toolSummary(List<AssistantToolResult> toolResults, AssistantLocaleContext locale) {
         String summary = toolResults.stream()
                 .map(AssistantToolResult::summary)
                 .filter(value -> value != null && !value.isBlank())
                 .distinct()
                 .collect(Collectors.joining(" "));
-        return summary.isBlank() ? "" : "Tool summary: " + summary + "\n\n";
+        return summary.isBlank() ? "" : message(locale, "assistant.answer.toolSummary", "Tool summary: {0}", summary) + "\n\n";
     }
 
-    private String plural(int count) {
-        return count == 1 ? "" : "s";
-    }
-
-    private String kindLabel(AssistantPlan plan) {
+    private String kindLabel(AssistantPlan plan, AssistantLocaleContext locale) {
         if (plan.kindCode().isBlank()) {
-            return "CRM record";
+            return message(locale, "assistant.kind.crmRecord", "CRM record");
         }
-        return plan.kindCode().toLowerCase(Locale.ROOT).replace('_', ' ');
+        return message(locale, "assistant.kind." + plan.kindCode(), plan.kindCode().toLowerCase(Locale.ROOT).replace('_', ' '));
+    }
+
+    private String fieldLabel(AssistantLocaleContext locale, String key, String fallback) {
+        return message(locale, "assistant.field." + key, fallback);
+    }
+
+    private String suggestedAction(AssistantLocaleContext locale, String actionKey, String actionFallback) {
+        return message(locale, "assistant.answer.suggestedAction", "Suggested next manual action:") + "\n" + message(locale, actionKey, actionFallback);
+    }
+
+    private String message(AssistantLocaleContext locale, String key, String fallback, Object... args) {
+        return staticResponses.message(locale, key, fallback, args);
     }
 
     private String targetLabel(AssistantPlan plan) {

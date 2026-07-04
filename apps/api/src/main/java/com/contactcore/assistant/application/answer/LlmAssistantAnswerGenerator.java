@@ -3,6 +3,7 @@
 package com.contactcore.assistant.application.answer;
 
 import com.contactcore.assistant.application.AssistantContext;
+import com.contactcore.assistant.application.AssistantLocaleContext;
 import com.contactcore.assistant.application.AssistantContextBuilder;
 import com.contactcore.assistant.application.AssistantProperties;
 import com.contactcore.assistant.llm.LlmGateway;
@@ -31,15 +32,21 @@ public class LlmAssistantAnswerGenerator implements AssistantAnswerGenerator {
         return true;
     }
 
-    @Override
     public AssistantAnswerGenerationResult generate(AssistantPlan plan, AssistantRetrievalResult retrieval, String userMessage) {
-        AssistantContext context = contextBuilder.build(retrieval);
+        return generate(plan, retrieval, userMessage, new AssistantLocaleContext(com.contactcore.shared.localization.SupportedLocale.DEFAULT, com.contactcore.shared.localization.SupportedLocale.DEFAULT.languageName(), com.contactcore.shared.localization.SupportedLocale.DEFAULT.direction()));
+    }
+
+    @Override
+    public AssistantAnswerGenerationResult generate(AssistantPlan plan, AssistantRetrievalResult retrieval, String userMessage, AssistantLocaleContext locale) {
+        AssistantContext context = contextBuilder.build(retrieval, locale);
         LlmResponse response = llmGateway.complete(new LlmRequest(
                 properties.model(),
                 plan.retrievalType(),
                 context.systemPrompt(),
                 context.contextText(),
-                userMessage
+                userMessage,
+                locale.tag(),
+                locale.htmlDirection()
         ));
         return AssistantAnswerGenerationResult.success(AssistantAnswerSource.LLM, response.content(), response.modelName());
     }

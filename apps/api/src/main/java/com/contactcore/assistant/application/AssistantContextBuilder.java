@@ -4,8 +4,12 @@ package com.contactcore.assistant.application;
 
 import com.contactcore.assistant.retrieval.AssistantRetrievalResult;
 import com.contactcore.assistant.retrieval.AssistantSearchResult;
+import com.contactcore.shared.localization.LocaleContext;
+import com.contactcore.shared.localization.LocalizedMessageService;
+import com.contactcore.shared.localization.SupportedLocale;
 import com.contactcore.assistant.tool.AssistantToolResult;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -36,13 +40,36 @@ public class AssistantContextBuilder {
             """;
 
     private final AssistantProperties properties;
+    private final LocalizedMessageService messages;
 
     public AssistantContextBuilder(AssistantProperties properties) {
+        this(properties, new LocalizedMessageService(new com.contactcore.shared.localization.LocaleConfiguration().messageSource()));
+    }
+
+    @Autowired
+    public AssistantContextBuilder(AssistantProperties properties, LocalizedMessageService messages) {
         this.properties = properties;
+        this.messages = messages;
     }
 
     public AssistantContext build(AssistantRetrievalResult retrieval) {
+        SupportedLocale locale = SupportedLocale.DEFAULT;
+        return build(retrieval, new AssistantLocaleContext(locale, locale.languageName(), locale.direction()));
+    }
+
+    public AssistantContext build(AssistantRetrievalResult retrieval, AssistantLocaleContext locale) {
+        String localeInstruction = messages.message(new LocaleContext(locale.locale(), locale.languageName(), locale.direction()),
+                "assistant.prompt.locale",
+                "Answer in " + locale.languageName() + ". Do not translate source business data.",
+                locale.languageName(),
+                locale.htmlDirection());
         StringBuilder builder = new StringBuilder(Math.min(properties.maxContextChars(), 16_384));
+        append(builder, "SELECTED_LOCALE: ").append(locale.selectedLocale().tag()).append('\n');
+        append(builder, "DETECTED_INPUT_LOCALE: ").append(locale.detectedInputLocale() == null ? "unknown" : locale.detectedInputLocale().tag()).append('\n');
+        append(builder, "RESPONSE_LOCALE: ").append(locale.tag()).append('\n');
+        append(builder, "TEXT_DIRECTION: ").append(locale.htmlDirection()).append('\n');
+        append(builder, "LOCALE_DECISION_SOURCE: ").append(locale.decisionSource().name()).append('\n');
+        append(builder, "LOCALE_POLICY: ").append(localeInstruction).append('\n');
         append(builder, CRM_SCHEMA).append('\n');
         append(builder, "USER_INTENT: ").append(retrieval.userIntent()).append('\n');
         append(builder, "RETRIEVAL_TYPE: ").append(retrieval.type().name()).append('\n');
@@ -65,8 +92,9 @@ public class AssistantContextBuilder {
         String contextText = builder.length() <= properties.maxContextChars()
                 ? builder.toString()
                 : builder.substring(0, properties.maxContextChars());
-        return new AssistantContext(SYSTEM_PROMPT, contextText, retrieval.references());
+        return new AssistantContext(SYSTEM_PROMPT + "\n" + localeInstruction, contextText, retrieval.references());
     }
+
 
     private void appendRecords(StringBuilder builder, AssistantToolResult toolResult) {
         int index = 1;

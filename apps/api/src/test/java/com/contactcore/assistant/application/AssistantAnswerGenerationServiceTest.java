@@ -5,6 +5,7 @@ package com.contactcore.assistant.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 import com.contactcore.assistant.application.answer.AssistantAnswerGenerationResult;
 import com.contactcore.assistant.application.answer.AssistantAnswerGenerationService;
@@ -70,7 +71,7 @@ class AssistantAnswerGenerationServiceTest {
                         fields("Kind", "Lead", "Active records", "12")
                 ))
         );
-        when(llmAnswerGenerator.generate(plan, retrieval, "summarize CRM"))
+        when(llmAnswerGenerator.generate(org.mockito.Mockito.eq(plan), org.mockito.Mockito.eq(retrieval), org.mockito.Mockito.eq("summarize CRM"), any(AssistantLocaleContext.class)))
                 .thenThrow(new IllegalStateException("llama.cpp is unavailable"));
 
         AssistantAnswerGenerationResult result = service.generate(plan, retrieval, "summarize CRM");

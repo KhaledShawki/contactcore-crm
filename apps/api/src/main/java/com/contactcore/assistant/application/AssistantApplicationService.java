@@ -13,6 +13,7 @@ import com.contactcore.assistant.domain.AssistantConversationRepository;
 import com.contactcore.assistant.domain.AssistantMessage;
 import com.contactcore.assistant.domain.AssistantMessageRepository;
 import com.contactcore.assistant.application.answer.AssistantAnswerGenerationResult;
+import com.contactcore.assistant.application.i18n.AssistantLocaleContextResolver;
 import com.contactcore.assistant.application.evidence.AssistantEvidence;
 import com.contactcore.assistant.application.evidence.AssistantEvidenceGate;
 import com.contactcore.assistant.application.answer.AssistantAnswerGenerationService;
@@ -22,6 +23,7 @@ import com.contactcore.assistant.security.AssistantInputGuard;
 import com.contactcore.assistant.retrieval.AssistantRetrievalResult;
 import com.contactcore.assistant.tool.AssistantToolOrchestrator;
 import com.contactcore.shared.api.InvalidRequestException;
+import com.contactcore.shared.localization.LocaleContextResolver;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -42,6 +44,8 @@ public class AssistantApplicationService {
     private final AssistantAnswerGenerationService answerGenerationService;
     private final AssistantAuditService auditService;
     private final AssistantPersistenceService persistenceService;
+    private final LocaleContextResolver localeContextResolver;
+    private final AssistantLocaleContextResolver assistantLocaleContextResolver;
 
     public AssistantApplicationService(AssistantProperties properties,
                                        AssistantConversationRepository conversations,
@@ -53,7 +57,9 @@ public class AssistantApplicationService {
                                        AssistantEvidenceGate evidenceGate,
                                        AssistantAnswerGenerationService answerGenerationService,
                                        AssistantAuditService auditService,
-                                       AssistantPersistenceService persistenceService) {
+                                       AssistantPersistenceService persistenceService,
+                                       LocaleContextResolver localeContextResolver,
+                                       AssistantLocaleContextResolver assistantLocaleContextResolver) {
         this.properties = properties;
         this.conversations = conversations;
         this.messages = messages;
@@ -65,6 +71,8 @@ public class AssistantApplicationService {
         this.answerGenerationService = answerGenerationService;
         this.auditService = auditService;
         this.persistenceService = persistenceService;
+        this.localeContextResolver = localeContextResolver;
+        this.assistantLocaleContextResolver = assistantLocaleContextResolver;
     }
 
     public AssistantResponse sendMessage(Long userId, AssistantRequest request) {
@@ -78,13 +86,14 @@ public class AssistantApplicationService {
                 titleFrom(userMessage)
         );
         AssistantConversation conversation = persistedUserMessage.conversation();
+        AssistantLocaleContext locale = assistantLocaleContextResolver.resolve(userMessage, localeContextResolver.resolveForUser(userId));
         AssistantPlan plan = queryPlanner.plan(userMessage);
 
         try {
             AssistantRetrievalResult rawRetrieval = retrieve(userId, plan);
             AssistantEvidence evidence = evidenceGate.assess(plan, rawRetrieval);
             AssistantRetrievalResult retrieval = evidence.retrieval();
-            AssistantAnswerGenerationResult answer = answerGenerationService.generate(plan, retrieval, userMessage);
+            AssistantAnswerGenerationResult answer = answerGenerationService.generate(plan, retrieval, userMessage, locale);
             List<AssistantRecordReference> persistedReferences = retrieval.references().stream()
                     .filter(reference -> reference.entityId() != null && reference.entityId() > 0)
                     .toList();
