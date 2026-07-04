@@ -7,6 +7,8 @@ import java.util.List;
 public record UiField(
         String key,
         String label,
+        String labelKey,
+        String valueKind,
         String type,
         boolean required,
         boolean listVisible,
