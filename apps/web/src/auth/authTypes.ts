@@ -5,6 +5,8 @@ export interface CurrentUser {
   username: string;
   email: string;
   displayName: string;
+  locale: 'en' | 'de' | 'ar';
+  direction: 'ltr' | 'rtl';
   roles: string[];
 }
 
