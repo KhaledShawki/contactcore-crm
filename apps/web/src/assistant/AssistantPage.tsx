@@ -3,10 +3,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import BlueAlert from '../components/BlueAlert';
 import BlueButton from '../components/BlueButton';
+import AssistantCapabilityChips from './AssistantCapabilityChips';
 import AssistantConversationSidebar from './AssistantConversationSidebar';
 import AssistantMessageInput from './AssistantMessageInput';
 import AssistantMessageList from './AssistantMessageList';
 import type { AssistantMessage, AssistantResponse } from './assistantTypes';
+import { useLocale } from '../i18n/LocaleProvider';
 import {
   useArchiveAssistantConversationMutation,
   useGetAssistantConversationQuery,
@@ -14,12 +16,12 @@ import {
   useSendAssistantMessageMutation,
 } from './assistantApi';
 
-const suggestedPrompts = [
-  'Which leads need follow-up?',
-  'Which leads are missing contact persons?',
-  'Show marketing source performance.',
-  'Summarize the CRM status.',
-  'Find records related to Meyer.',
+const suggestedPromptKeys = [
+  'assistant.suggestions.followUpLeads',
+  'assistant.suggestions.missingContacts',
+  'assistant.suggestions.marketingPerformance',
+  'assistant.suggestions.crmStatus',
+  'assistant.suggestions.findMeyer',
 ];
 
 interface PendingAssistantExchange {
@@ -63,10 +65,11 @@ function extractRequestErrorMessage(error: unknown): string {
     }
   }
 
-  return 'Assistant request failed. Check the backend logs for details.';
+  return '';
 }
 
 export default function AssistantPage() {
+  const { t } = useLocale();
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
   const [pendingExchange, setPendingExchange] = useState<PendingAssistantExchange | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +135,7 @@ export default function AssistantPage() {
         startNewConversation();
       }
     } catch {
-      setError('Could not archive this conversation. Try again.');
+      setError(t('assistant.errors.archive'));
     }
   };
 
@@ -158,7 +161,7 @@ export default function AssistantPage() {
         messages: [userMessage, assistantMessage],
       });
     } catch (requestError) {
-      setError(extractRequestErrorMessage(requestError));
+      setError(extractRequestErrorMessage(requestError) || t('assistant.errors.requestFailed'));
     }
   };
 
@@ -175,34 +178,32 @@ export default function AssistantPage() {
         onArchiveConversation={removeConversation}
       />
 
-      <section className="assistant-chat-main" aria-label="ContactCore Assistant chat">
+      <section className="assistant-chat-main" aria-label={t('assistant.chat.aria')}>
         <header className="assistant-chat-header">
           <div>
-            <p className="eyebrow">AI-assisted CRM</p>
-            <h1>ContactCore Assistant</h1>
+            <p className="eyebrow">{t('assistant.header.eyebrow')}</p>
+            <h1>{t('assistant.header.title')}</h1>
             <p className="muted-text">
-              Ask focused CRM questions. Answers are generated from authorized ContactCore data and include record references when available.
+              {t('assistant.header.description')}
             </p>
           </div>
-          <BlueButton type="button" variant="secondary" onClick={startNewConversation}>New conversation</BlueButton>
+          <BlueButton type="button" variant="secondary" onClick={startNewConversation}>{t('assistant.conversations.new')}</BlueButton>
         </header>
 
         {error && <BlueAlert message={error} />}
 
         {showSuggestions && (
-          <div className="assistant-suggestions" aria-label="Suggested assistant prompts">
-            {suggestedPrompts.map((prompt) => (
-              <BlueButton key={prompt} variant="secondary" disabled={isSending} onClick={() => ask(prompt)}>
-                {prompt}
-              </BlueButton>
-            ))}
-          </div>
+          <AssistantCapabilityChips
+            promptKeys={suggestedPromptKeys}
+            disabled={isSending}
+            onSelectPrompt={(prompt) => { void ask(prompt); }}
+          />
         )}
 
         {activeConversationId !== null && conversationLoading && displayedMessages.length === 0 && (
           <div className="assistant-empty-state">
-            <h2>Loading conversation</h2>
-            <p>Retrieving the selected assistant conversation.</p>
+            <h2>{t('assistant.loadingConversation.title')}</h2>
+            <p>{t('assistant.loadingConversation.description')}</p>
           </div>
         )}
 

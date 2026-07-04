@@ -1,14 +1,10 @@
 // Copyright (c) Khaled Shawki. All rights reserved.
 
 import BlueButton from '../components/BlueButton';
+import { DirectionalText } from '../i18n/components/DirectionalText';
+import { formatDateTime } from '../i18n/formatters';
+import { useLocale } from '../i18n/LocaleProvider';
 import type { AssistantConversationSummary } from './assistantTypes';
-
-const conversationUpdatedAtFormatter = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-});
 
 interface Props {
   activeConversationId: number | null;
@@ -19,10 +15,6 @@ interface Props {
   onArchiveConversation: (conversationId: number) => void;
 }
 
-function formatUpdatedAt(value: string): string {
-  return conversationUpdatedAtFormatter.format(new Date(value));
-}
-
 export default function AssistantConversationSidebar({
   activeConversationId,
   conversations,
@@ -31,14 +23,16 @@ export default function AssistantConversationSidebar({
   onSelectConversation,
   onArchiveConversation,
 }: Props) {
+  const { locale, t } = useLocale();
+
   return (
-    <aside className="assistant-conversation-sidebar" aria-label="Assistant conversations">
+    <aside className="assistant-conversation-sidebar" aria-label={t('assistant.conversations.aria')}>
       <div className="assistant-conversation-sidebar__header">
         <div>
-          <p className="eyebrow">Assistant</p>
-          <h2>History</h2>
+          <p className="eyebrow">{t('navigation.assistant')}</p>
+          <h2>{t('assistant.conversations.history')}</h2>
         </div>
-        <BlueButton type="button" onClick={onNewConversation}>New</BlueButton>
+        <BlueButton type="button" onClick={onNewConversation}>{t('assistant.conversations.newShort')}</BlueButton>
       </div>
 
       <button
@@ -46,15 +40,15 @@ export default function AssistantConversationSidebar({
         className={`assistant-conversation-item assistant-conversation-item--new ${activeConversationId === null ? 'assistant-conversation-item--active' : ''}`.trim()}
         onClick={onNewConversation}
       >
-        <span>New conversation</span>
-        <small>Start a clean assistant thread</small>
+        <span>{t('assistant.conversations.new')}</span>
+        <small>{t('assistant.conversations.newDescription')}</small>
       </button>
 
       <div className="assistant-conversation-list" aria-busy={isLoading}>
-        {isLoading && <p className="assistant-conversation-empty">Loading conversations…</p>}
+        {isLoading && <p className="assistant-conversation-empty">{t('assistant.conversations.loading')}</p>}
 
         {!isLoading && conversations.length === 0 && (
-          <p className="assistant-conversation-empty">No previous assistant conversations yet.</p>
+          <p className="assistant-conversation-empty">{t('assistant.conversations.empty')}</p>
         )}
 
         {!isLoading && conversations.map((conversation) => (
@@ -67,14 +61,14 @@ export default function AssistantConversationSidebar({
               className="assistant-conversation-item"
               onClick={() => onSelectConversation(conversation.id)}
             >
-              <span>{conversation.title}</span>
-              <small>{formatUpdatedAt(conversation.updatedAt)}</small>
+              <span><DirectionalText value={conversation.title} /></span>
+              <small>{formatDateTime(conversation.updatedAt, locale)}</small>
             </button>
             <button
               type="button"
               className="assistant-conversation-archive"
-              aria-label={`Archive conversation ${conversation.title}`}
-              title="Archive conversation"
+              aria-label={t('assistant.conversations.archiveAria', { title: conversation.title })}
+              title={t('assistant.conversations.archive')}
               onClick={() => onArchiveConversation(conversation.id)}
             >
               ×
