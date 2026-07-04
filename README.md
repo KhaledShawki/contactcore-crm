@@ -528,3 +528,9 @@ where user_account.username = 'admin'
 The assistant remains read-only and evidence-gated. Business Partner search and detail requests use the active CRM connector when one is connected. If no connector is active, the existing local ContactCore CRM tools continue to serve local data.
 
 The Business Partner model is intentionally broader than the first SAP B1 screen. It is the anchor for the next reporting phase, where optional connector snapshots can link business partners to addresses, contact persons, financial balances, sales orders, purchase orders, AR/AP invoices, payments, activities, and graph-style business insights without reworking the connector API.
+
+### Assistant multilingual policy
+
+The assistant uses a language-independent planning pipeline. The latest user message is analyzed to choose the assistant response language. When English, German, or Arabic is confidently detected, the answer follows that message language even if the selected application language is different. If the message language is unclear or mixed without a dominant command language, the assistant falls back to the selected application locale.
+
+Tool planning remains canonical and language-neutral. User phrases such as `customer`, `Kunde`, and `عميل` normalize to the same internal `CUSTOMER` concept before tool execution. Tool arguments use stable enums and identifiers, not translated labels. Tool results remain structured facts, and source data such as SAP codes, company names, emails, phone numbers, document numbers, and external record values is preserved unchanged. Only assistant explanation text and owned labels are localized.
