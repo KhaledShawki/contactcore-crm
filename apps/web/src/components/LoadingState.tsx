@@ -1,5 +1,8 @@
 // Copyright (c) Khaled Shawki. All rights reserved.
 
+import { useLocale } from '../i18n/LocaleProvider';
+
 export default function LoadingState() {
-  return <div className="state-card">Loading...</div>;
+  const { t } = useLocale();
+  return <div className="state-card">{t('common.loading.default')}</div>;
 }

@@ -21,6 +21,7 @@ import type { UiScreen, UserProfile } from '../schema/types';
 import { selectVisibleProfileImageUrl, type LocalProfileImagePreviewState } from '../profile/profileImageDisplay';
 import { validateProfileImageFile } from '../profile/profileImageValidation';
 import { useNotifications } from '../notifications/useNotifications';
+import { useLocale } from '../i18n/LocaleProvider';
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -28,6 +29,7 @@ interface ProfileEditorProps {
 }
 
 function ProfileEditor({ profile, screen }: ProfileEditorProps) {
+  const { t } = useLocale();
   const profileImageQueryArg = profile.profileImageUrl?.trim() ? profile.profileImageUrl : skipToken;
   const { currentData: serverProfileImageUrl, isFetching: imageLoading } = useGetProfileImageQuery(profileImageQueryArg);
   const [updateProfile, { isLoading: saving }] = useUpdateProfileMutation();
@@ -78,9 +80,9 @@ function ProfileEditor({ profile, screen }: ProfileEditorProps) {
       const nextPayload = toWritablePayload(screen, nextValue);
       setFormValue(nextValue);
       setSavedPayload(nextPayload);
-      notifySuccess('Profile saved.');
+      notifySuccess(t('profile.saved'));
     } catch {
-      notifyError('Could not save the profile. Check the entered values and try again.');
+      notifyError(t('profile.saveFailed'));
     }
   });
 
@@ -88,8 +90,9 @@ function ProfileEditor({ profile, screen }: ProfileEditorProps) {
     setUploadError(null);
     const validation = validateProfileImageFile(file);
     if (!validation.valid) {
-      setUploadError(validation.message);
-      if (validation.message) notifyError(validation.message);
+      const message = validation.messageKey ? t(validation.messageKey) : null;
+      setUploadError(message);
+      if (message) notifyError(message);
       return;
     }
     if (!file) return;
@@ -97,10 +100,10 @@ function ProfileEditor({ profile, screen }: ProfileEditorProps) {
     try {
       const saved = await uploadProfileImage(file).unwrap();
       markLocalPreviewAsServerBacked(saved.profileImageUrl);
-      notifySuccess('Profile image uploaded.');
+      notifySuccess(t('profile.image.uploaded'));
     } catch {
       clearLocalPreview();
-      const message = 'Profile image upload failed. Check that MinIO and the file scanner are running, and that the file is safe.';
+      const message = t('profile.image.failed');
       setUploadError(message);
       notifyError(message);
     }
@@ -116,13 +119,13 @@ function ProfileEditor({ profile, screen }: ProfileEditorProps) {
   const visibleLocalPreviewUrl = visibleProfileImageUrl === localPreview?.objectUrl ? visibleProfileImageUrl : null;
 
   return (
-    <BlueCard eyebrow="Settings" title="User Profile">
+    <BlueCard eyebrow={t('profile.eyebrow')} title={t('profile.title')}>
       <div className="profile-grid">
         <div className="profile-image-card">
           {visibleProfileImageUrl ? (
             <img
               src={visibleProfileImageUrl}
-              alt="Profile"
+              alt={t('profile.image.alt')}
               onLoad={() => {
                 if (!visibleLocalPreviewUrl) {
                   clearLocalPreview();
@@ -130,10 +133,10 @@ function ProfileEditor({ profile, screen }: ProfileEditorProps) {
               }}
             />
           ) : (
-            <div className="profile-placeholder">{imageLoading ? 'Loading image' : 'Profile Image'}</div>
+            <div className="profile-placeholder">{imageLoading ? t('profile.image.loading') : t('profile.image.placeholder')}</div>
           )}
           <label className="profile-upload-control">
-            <span>{uploadBusy ? 'Uploading...' : 'Upload profile image'}</span>
+            <span>{uploadBusy ? t('profile.image.uploading') : t('profile.image.upload')}</span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
@@ -152,10 +155,10 @@ function ProfileEditor({ profile, screen }: ProfileEditorProps) {
           value={formValue}
           onChange={setFormValue}
           onSubmit={() => { void saveTask.run(); }}
-          submitLabel="Save Profile"
+          submitLabel={t('profile.save')}
           busy={saveBusy}
           canSubmit={formModified}
-          submitDisabledReason="No changes to save."
+          submitDisabledReason={t('schema.form.noChanges')}
         />
       </div>
     </BlueCard>
@@ -163,11 +166,12 @@ function ProfileEditor({ profile, screen }: ProfileEditorProps) {
 }
 
 export default function ProfilePage() {
+  const { t } = useLocale();
   const { data: screen, isLoading: screenLoading, error: screenError } = useGetScreenQuery('profile');
   const { data: profile, isLoading: profileLoading, error: profileError } = useGetProfileQuery();
 
   if (screenLoading || profileLoading) return <LoadingState />;
-  if (screenError || profileError || !screen || !profile) return <ErrorState message="Could not load profile." />;
+  if (screenError || profileError || !screen || !profile) return <ErrorState message={t('profile.loadFailed')} />;
 
   return <ProfileEditor key={String(profile.id ?? profile.userId)} profile={profile} screen={screen} />;
 }

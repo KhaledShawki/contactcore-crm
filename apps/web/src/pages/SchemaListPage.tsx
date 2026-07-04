@@ -8,6 +8,10 @@ import BlueInput from '../components/BlueInput';
 import BlueSelect from '../components/BlueSelect';
 import BluePagination from '../components/BluePagination';
 import BlueStatusBadge from '../components/BlueStatusBadge';
+import { CodeText } from '../i18n/components/CodeText';
+import { DirectionalText } from '../i18n/components/DirectionalText';
+import { EmailText } from '../i18n/components/EmailText';
+import { useLocale } from '../i18n/LocaleProvider';
 import BlueTable, { type BlueColumn } from '../components/BlueTable';
 import ErrorState from '../components/ErrorState';
 import LoadingState from '../components/LoadingState';
@@ -25,6 +29,7 @@ interface Props {
 }
 
 export default function SchemaListPage({ screenKey }: Props) {
+  const { t } = useLocale();
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
@@ -65,7 +70,7 @@ export default function SchemaListPage({ screenKey }: Props) {
 
   const archiveRecord = useCallback(async (row: BusinessPartner) => {
     if (connectorMode || !row.id || !screen) return;
-    const entityLabel = singularTitle(screen.title);
+    const entityLabel = singularTitle(t(`navigation.${screen.key}`));
     const shouldMoveToPreviousPage = page > 0 && data?.items.length === 1;
     await runArchiveTask(row.id, async () => {
       try {
@@ -73,23 +78,23 @@ export default function SchemaListPage({ screenKey }: Props) {
         if (shouldMoveToPreviousPage) {
           setPage((currentPage) => Math.max(0, currentPage - 1));
         }
-        notifySuccess(`${entityLabel} archived.`);
+        notifySuccess(t('crm.notifications.archived', { entity: entityLabel }));
       } catch {
-        notifyError(`Could not archive the ${entityLabel.toLowerCase()}. Try again.`);
+        notifyError(t('crm.errors.archive', { entity: entityLabel.toLowerCase() }));
       }
     });
-  }, [archivePartner, connectorMode, data?.items.length, notifyError, notifySuccess, page, runArchiveTask, screen]);
+  }, [archivePartner, connectorMode, data?.items.length, notifyError, notifySuccess, page, runArchiveTask, screen, t]);
 
   const exportReport = useCallback(async () => {
     if (!screen || connectorMode) return;
     try {
       const report = await downloadReport({ kind: screen.entityKind, query, sort }).unwrap();
       saveDownloadedReport(report);
-      notifySuccess(`${screen.title} report downloaded.`);
+      notifySuccess(t('crm.notifications.exported'));
     } catch {
-      notifyError(`Could not generate the ${screen.title.toLowerCase()} report. Try again.`);
+      notifyError(t('crm.errors.export', { title: t(`navigation.${screen.key}`).toLowerCase() }));
     }
-  }, [connectorMode, downloadReport, notifyError, notifySuccess, query, screen, sort]);
+  }, [connectorMode, downloadReport, notifyError, notifySuccess, query, screen, sort, t]);
 
   const columns = useMemo<BlueColumn<BusinessPartner>[]>(() => {
     if (!screen) return [];
@@ -98,63 +103,70 @@ export default function SchemaListPage({ screenKey }: Props) {
       if (!field.listVisible) continue;
       schemaColumns.push({
         key: field.key,
-        header: field.label,
-        render: (row: BusinessPartner) => renderFieldValue(field.key, (row as unknown as Record<string, unknown>)[field.key]),
+        header: t(field.labelKey ?? `schema.field.${field.key}`),
+        render: (row: BusinessPartner) => renderFieldValue(field.key, field.valueKind, (row as unknown as Record<string, unknown>)[field.key]),
       });
     }
     return [
       ...schemaColumns,
       {
         key: 'actions',
-        header: 'Actions',
+        header: t('common.actions.open'),
         align: 'right',
         render: (row) => (
           <div className="row-actions">
-            <Link to={`/${screenKey}/${encodeURIComponent(String(row.externalId ?? row.id ?? row.code))}`}>Open</Link>
+            <Link to={`/${screenKey}/${encodeURIComponent(String(row.externalId ?? row.id ?? row.code))}`}>{t('common.actions.open')}</Link>
             {!connectorMode && (
               <button type="button" className="link-button danger-link" disabled={row.id ? isArchiveRunning(row.id) : false} onClick={() => { void archiveRecord(row); }}>
-                {row.id && isArchiveRunning(row.id) ? 'Archiving...' : 'Archive'}
+                {row.id && isArchiveRunning(row.id) ? t('crm.actions.archiving') : t('crm.actions.archive')}
               </button>
             )}
           </div>
         ),
       },
     ];
-  }, [archiveRecord, connectorMode, isArchiveRunning, screen, screenKey]);
+  }, [archiveRecord, connectorMode, isArchiveRunning, screen, screenKey, t]);
 
   if (screenLoading) return <LoadingState />;
-  if (screenError || rowsError || !screen) return <ErrorState message="Could not load records." />;
+  if (screenError || rowsError || !screen) return <ErrorState message={t('crm.errors.loadRecords')} />;
 
   const pageData = data ?? { items: [], page: 0, size, totalElements: 0, totalPages: 0 };
 
   return (
     <BlueCard
-      eyebrow={connectorMode ? 'CRM connector' : 'CRM'}
-      title={connectorMode && connectorSession?.connectorDisplayName ? `${screen.title} from ${connectorSession.connectorDisplayName}` : screen.title}
+      eyebrow={connectorMode ? t('connectors.mode.eyebrow') : t('crm.eyebrow')}
+      title={connectorMode && connectorSession?.connectorDisplayName ? t('crm.form.fromConnector', { entity: t(`navigation.${screen.key}`), connector: connectorSession.connectorDisplayName }) : t(`navigation.${screen.key}`)}
       action={(
         <div className="card-actions">
           {!connectorMode && (
             <>
               <BlueButton type="button" variant="secondary" disabled={reportDownloading} onClick={() => { void exportReport(); }}>
-                {reportDownloading ? 'Exporting...' : 'Export XLSX'}
+                {reportDownloading ? t('crm.actions.exporting') : t('crm.actions.export')}
               </BlueButton>
-              <Link className="blue-button blue-button--primary" to={`/${screenKey}/new`}>New</Link>
+              <Link className="blue-button blue-button--primary" to={`/${screenKey}/new`}>{t('crm.actions.new')}</Link>
             </>
           )}
         </div>
       )}
     >
       <div className="list-toolbar">
-        <BlueInput label="Search" placeholder="Search by code, name, email, phone, or contact person" value={query} onChange={(event) => updateQuery(event.target.value)} />
+        <BlueInput label={t('crm.search.label')} placeholder={t('crm.search.placeholder')} value={query} onChange={(event) => updateQuery(event.target.value)} />
         <BlueSelect
-          label="Sort"
+          label={t('crm.sort.label')}
           value={sort}
           options={['updated_desc', 'created_desc', 'name_asc', 'code_asc', 'status_asc']}
+          optionLabels={{
+            updated_desc: t('crm.sort.updated_desc'),
+            created_desc: t('crm.sort.created_desc'),
+            name_asc: t('crm.sort.name_asc'),
+            code_asc: t('crm.sort.code_asc'),
+            status_asc: t('crm.sort.status_asc'),
+          }}
           onChange={(event) => updateSort(event.target.value)}
         />
-        {isFetching && <span className="refresh-pill">Refreshing</span>}
+        {isFetching && <span className="refresh-pill">{t('common.status.refreshing')}</span>}
       </div>
-      {connectorMode && <p className="hint">Read-only connector mode is active. The list is loaded from the selected CRM connector, not from the local ContactCore database.</p>}
+      {connectorMode && <p className="hint">{t('connectors.mode.listHint')}</p>}
       <BlueTable columns={columns} rows={pageData.items} rowKey={(row) => row.externalId ?? row.id ?? row.code} />
       <BluePagination
         page={pageData.page}
@@ -169,12 +181,18 @@ export default function SchemaListPage({ screenKey }: Props) {
   );
 }
 
-function renderFieldValue(key: string, value: unknown) {
+function renderFieldValue(key: string, valueKind: string | null | undefined, value: unknown) {
   const text = String(value ?? '');
   if (key.toLowerCase().includes('status') && text) {
     return <BlueStatusBadge value={text} />;
   }
-  return text;
+  if (valueKind === 'code' || valueKind === 'phone' || valueKind === 'url') {
+    return <CodeText value={text} />;
+  }
+  if (valueKind === 'email') {
+    return <EmailText value={text} />;
+  }
+  return <DirectionalText value={text} />;
 }
 
 function singularTitle(title: string) {

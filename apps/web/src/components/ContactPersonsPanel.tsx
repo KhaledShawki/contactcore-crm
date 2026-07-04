@@ -14,6 +14,10 @@ import { validateSchemaRecord, type SchemaValidationResult } from '../schema/sch
 import { useArchiveContactPersonMutation, useListContactPersonsQuery, useSaveContactPersonMutation } from '../crm/crmApi';
 import { useGetScreenQuery } from '../schema/schemaApi';
 import { useNotifications } from '../notifications/useNotifications';
+import { CodeText } from '../i18n/components/CodeText';
+import { DirectionalText } from '../i18n/components/DirectionalText';
+import { EmailText } from '../i18n/components/EmailText';
+import { useLocale } from '../i18n/LocaleProvider';
 
 const emptyContact: ContactPerson = {
   firstName: '',
@@ -78,6 +82,7 @@ function contactEditorReducer(state: ContactEditorState, action: ContactEditorAc
 }
 
 export default function ContactPersonsPanel({ businessPartnerId }: { businessPartnerId: number }) {
+  const { t } = useLocale();
   const { data: contacts = [], isFetching } = useListContactPersonsQuery(businessPartnerId);
   const { data: contactSchema } = useGetScreenQuery('contactPersons');
   const [saveContact, { isLoading: saving }] = useSaveContactPersonMutation();
@@ -101,18 +106,18 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
   const editing = Boolean(formValue.id);
 
   const columns: BlueColumn<ContactPerson>[] = [
-    { key: 'displayName', header: 'Name', render: (row) => row.displayName ?? `${row.firstName} ${row.lastName}` },
-    { key: 'roleTitle', header: 'Role', render: (row) => row.roleTitle ?? '—' },
-    { key: 'email', header: 'Email', render: (row) => row.email ?? '—' },
-    { key: 'phone', header: 'Phone', render: (row) => row.phone ?? row.mobile ?? '—' },
-    { key: 'primary', header: 'Primary', render: (row) => row.primaryContact ? 'Yes' : 'No' },
+    { key: 'displayName', header: t('schema.field.name'), render: (row) => <DirectionalText value={row.displayName ?? `${row.firstName} ${row.lastName}`} /> },
+    { key: 'roleTitle', header: t('schema.field.roleTitle'), render: (row) => <DirectionalText value={row.roleTitle ?? '—'} /> },
+    { key: 'email', header: t('schema.field.email'), render: (row) => row.email ? <EmailText value={row.email} /> : '—' },
+    { key: 'phone', header: t('schema.field.phone'), render: (row) => row.phone || row.mobile ? <CodeText value={row.phone ?? row.mobile} /> : '—' },
+    { key: 'primary', header: t('contactPersons.primary'), render: (row) => row.primaryContact ? t('common.boolean.yes') : t('common.boolean.no') },
     {
       key: 'actions',
-      header: 'Actions',
+      header: t('common.actions.open'),
       align: 'right',
       render: (row) => (
         <div className="row-actions">
-          <button type="button" className="link-button" onClick={() => startEdit(row)} disabled={saving}>Edit</button>
+          <button type="button" className="link-button" onClick={() => startEdit(row)} disabled={saving}>{t('common.actions.edit')}</button>
           {row.id && (
             <button
               type="button"
@@ -120,7 +125,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
               disabled={archiveTask.isRunning(row.id)}
               onClick={() => archiveContactPerson(row)}
             >
-              {archiveTask.isRunning(row.id) ? 'Archiving...' : 'Archive'}
+              {archiveTask.isRunning(row.id) ? t('crm.actions.archiving') : t('crm.actions.archive')}
             </button>
           )}
         </div>
@@ -131,7 +136,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
   const submitTask = useSingleFlightAction(async () => {
     if (!contactSchema || !formModified) {
       if (!contactSchema) {
-        dispatchEditor({ type: 'apiErrorChanged', apiError: 'Could not load contact-person validation schema.' });
+        dispatchEditor({ type: 'apiErrorChanged', apiError: t('contactPersons.errors.validationSchema') });
       }
       return;
     }
@@ -147,10 +152,10 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
     try {
       const payload = currentPayload as unknown as ContactPerson;
       await saveContact({ businessPartnerId, id: formValue.id, body: payload }).unwrap();
-      notifySuccess(editing ? 'Contact person updated.' : 'Contact person added.');
+      notifySuccess(editing ? t('contactPersons.notifications.updated') : t('contactPersons.notifications.added'));
       resetForm();
     } catch (error) {
-      const message = resolveApiErrorMessage(error);
+      const message = resolveApiErrorMessage(error, t);
       dispatchEditor({ type: 'apiErrorChanged', apiError: message });
       notifyError(message);
     }
@@ -187,12 +192,12 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
     await archiveTask.run(row.id, async () => {
       try {
         await archiveContact({ businessPartnerId, id: row.id as number }).unwrap();
-        notifySuccess('Contact person archived.');
+        notifySuccess(t('contactPersons.notifications.archived'));
         if (formValue.id === row.id) {
           resetForm();
         }
       } catch {
-        notifyError('Could not archive contact person. Try again.');
+        notifyError(t('contactPersons.errors.archive'));
       }
     });
   }
@@ -205,26 +210,26 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
     <section className="contact-persons-panel">
       <header className="subheader">
         <div>
-          <h2>Contact persons</h2>
-          <p className="hint">People connected to this customer, lead, or supplier.</p>
+          <h2>{t('contactPersons.title')}</h2>
+          <p className="hint">{t('contactPersons.description')}</p>
         </div>
-        {isFetching && <span className="refresh-pill">Refreshing</span>}
+        {isFetching && <span className="refresh-pill">{t('common.status.refreshing')}</span>}
       </header>
 
       <form className="contact-person-editor" onSubmit={(event) => { event.preventDefault(); void submitTask.run(); }} noValidate>
         <div className="contact-person-editor__header">
           <div>
-            <strong>{editing ? 'Edit contact person' : 'Add contact person'}</strong>
-            <span>Validation is driven by the backend UI schema.</span>
+            <strong>{editing ? t('contactPersons.editor.editTitle') : t('contactPersons.editor.addTitle')}</strong>
+            <span>{t('contactPersons.editor.schemaHint')}</span>
           </div>
-          {editing && <span className="settings-pill">Editing</span>}
+          {editing && <span className="settings-pill">{t('contactPersons.editor.editing')}</span>}
         </div>
 
         {formError && <BlueAlert message={formError} />}
         <div className="contact-person-form">
           <BlueInput
             name="firstName"
-            label="First name"
+            label={t('schema.field.firstName')}
             required
             disabled={saveBusy}
             value={formValue.firstName}
@@ -233,7 +238,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
           />
           <BlueInput
             name="lastName"
-            label="Last name"
+            label={t('schema.field.lastName')}
             required
             disabled={saveBusy}
             value={formValue.lastName}
@@ -242,7 +247,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
           />
           <BlueInput
             name="roleTitle"
-            label="Role"
+            label={t('schema.field.roleTitle')}
             disabled={saveBusy}
             value={formValue.roleTitle ?? ''}
             error={fieldErrors.roleTitle}
@@ -250,7 +255,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
           />
           <BlueInput
             name="email"
-            label="Email"
+            label={t('schema.field.email')}
             type="email"
             inputMode="email"
             disabled={saveBusy}
@@ -260,7 +265,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
           />
           <BlueInput
             name="phone"
-            label="Phone"
+            label={t('schema.field.phone')}
             type="tel"
             inputMode="tel"
             disabled={saveBusy}
@@ -270,7 +275,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
           />
           <BlueInput
             name="mobile"
-            label="Mobile"
+            label={t('schema.field.mobile')}
             type="tel"
             inputMode="tel"
             disabled={saveBusy}
@@ -280,7 +285,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
           />
           <BlueInput
             name="department"
-            label="Department"
+            label={t('schema.field.department')}
             disabled={saveBusy}
             value={formValue.department ?? ''}
             error={fieldErrors.department}
@@ -289,12 +294,12 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
           <label className="toggle-card compact-toggle">
             <input type="checkbox" checked={formValue.primaryContact} disabled={saveBusy} onChange={(event) => setField('primaryContact', event.target.checked)} />
             <span>
-              <strong>Primary contact</strong>
-              <small>Only one active contact can be primary.</small>
+              <strong>{t('contactPersons.primary')}</strong>
+              <small>{t('contactPersons.primaryHelp')}</small>
             </span>
           </label>
           <label className={`blue-field span-two ${fieldErrors.notes ? 'blue-field--invalid' : ''}`.trim()}>
-            <span>Notes</span>
+            <span>{t('schema.field.notes')}</span>
             <textarea value={formValue.notes ?? ''} disabled={saveBusy} onChange={(event) => setField('notes', event.target.value)} aria-invalid={fieldErrors.notes ? true : undefined} />
             {fieldErrors.notes && <small className="field-error">{fieldErrors.notes}</small>}
           </label>
@@ -302,20 +307,20 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
 
         <footer className="contact-person-form__actions">
           <span className="contact-person-form__validation-hint">
-            {!formModified ? 'No changes to save.' : currentValidation.valid ? 'Ready to save.' : 'Complete the required contact details before saving.'}
+            {!formModified ? t('schema.form.noChanges') : currentValidation.valid ? t('contactPersons.validation.ready') : t('contactPersons.validation.completeRequired')}
           </span>
           <div className="contact-person-form__buttons">
-            <BlueButton type="submit" disabled={saveBusy || !formModified} title={!saveBusy && !formModified ? 'No changes to save.' : undefined}>
-              {saveBusy ? 'Saving...' : editing ? 'Update contact' : 'Add contact'}
+            <BlueButton type="submit" disabled={saveBusy || !formModified} title={!saveBusy && !formModified ? t('schema.form.noChanges') : undefined}>
+              {saveBusy ? t('schema.form.saving') : editing ? t('contactPersons.actions.update') : t('contactPersons.actions.add')}
             </BlueButton>
-            <BlueButton type="button" variant="secondary" disabled={saveBusy} onClick={resetForm}>{editing ? 'Cancel edit' : 'Clear'}</BlueButton>
+            <BlueButton type="button" variant="secondary" disabled={saveBusy} onClick={resetForm}>{editing ? t('contactPersons.actions.cancelEdit') : t('contactPersons.actions.clear')}</BlueButton>
           </div>
         </footer>
       </form>
 
       <div className="contact-person-table-section">
         {contacts.length === 0 ? (
-          <p className="empty-state">No contact persons added yet.</p>
+          <p className="empty-state">{t('contactPersons.empty')}</p>
         ) : (
           <BlueTable columns={columns} rows={contacts} rowKey={(row) => row.id ?? `${row.firstName}-${row.lastName}`} />
         )}
@@ -324,7 +329,7 @@ export default function ContactPersonsPanel({ businessPartnerId }: { businessPar
   );
 }
 
-function resolveApiErrorMessage(error: unknown): string {
+function resolveApiErrorMessage(error: unknown, t: (key: string) => string): string {
   const queryError = error as FetchBaseQueryError;
   if (queryError && typeof queryError === 'object' && 'data' in queryError) {
     const data = queryError.data as { message?: unknown } | undefined;
@@ -332,5 +337,5 @@ function resolveApiErrorMessage(error: unknown): string {
       return data.message;
     }
   }
-  return 'Could not save contact person. Check the required fields and try again.';
+  return t('contactPersons.errors.save');
 }

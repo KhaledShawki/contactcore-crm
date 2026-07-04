@@ -5,6 +5,7 @@ export type FieldType = 'hidden' | 'text' | 'textarea' | 'select' | 'number' | '
 export interface UiRoute {
   path: string;
   label: string;
+  labelKey?: string | null;
   screenKey: string;
 }
 
@@ -33,6 +34,8 @@ export interface UiFormRule {
 export interface UiField {
   key: string;
   label: string;
+  labelKey?: string | null;
+  valueKind?: string | null;
   type: FieldType;
   required: boolean;
   listVisible: boolean;
