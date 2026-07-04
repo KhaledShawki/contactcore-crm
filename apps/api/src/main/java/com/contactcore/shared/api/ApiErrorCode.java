@@ -1,0 +1,16 @@
+// Copyright (c) Khaled Shawki. All rights reserved.
+
+package com.contactcore.shared.api;
+
+public enum ApiErrorCode {
+    NOT_FOUND,
+    INVALID_REQUEST,
+    RATE_LIMIT_EXCEEDED,
+    DATA_INTEGRITY_CONFLICT,
+    FILE_SCANNING_UNAVAILABLE,
+    AUTH_INVALID_CREDENTIALS,
+    VALIDATION_FAILED,
+    UNEXPECTED_SERVER_ERROR,
+    CONNECTOR_SESSION_REQUIRED,
+    CONNECTOR_ACCESS_DENIED
+}

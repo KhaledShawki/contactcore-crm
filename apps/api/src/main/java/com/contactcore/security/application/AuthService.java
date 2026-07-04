@@ -9,6 +9,7 @@ import com.contactcore.security.api.LoginRequest;
 import com.contactcore.security.domain.AppUser;
 import com.contactcore.security.domain.AppUserRepository;
 import com.contactcore.shared.api.NotFoundException;
+import com.contactcore.shared.localization.SupportedLocale;
 import java.util.List;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -47,10 +48,18 @@ public class AuthService {
     }
 
     private CurrentUserResponse toCurrentUser(AppUser user) {
-        String displayName = profiles.findByUserId(user.getId())
-                .map(profile -> profile.getDisplayName())
-                .orElse(user.getUsername());
+        var profile = profiles.findByUserId(user.getId());
+        String displayName = profile.map(value -> value.getDisplayName()).orElse(user.getUsername());
+        SupportedLocale locale = SupportedLocale.normalizeOrDefault(profile.map(value -> value.getLocale()).orElse(null));
         List<String> roles = user.getRoles().stream().map(role -> role.getCode()).toList();
-        return new CurrentUserResponse(user.getId(), user.getUsername(), user.getEmail(), displayName, roles);
+        return new CurrentUserResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                displayName,
+                locale.tag(),
+                locale.direction().htmlValue(),
+                roles
+        );
     }
 }

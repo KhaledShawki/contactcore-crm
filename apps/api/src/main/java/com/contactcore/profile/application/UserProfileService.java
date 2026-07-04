@@ -2,11 +2,15 @@
 
 package com.contactcore.profile.application;
 
+import com.contactcore.profile.api.UserLocaleUpdateRequest;
 import com.contactcore.profile.api.UserProfileResponse;
 import com.contactcore.profile.api.UserProfileWriteRequest;
 import com.contactcore.profile.domain.UserProfile;
 import com.contactcore.profile.domain.UserProfileRepository;
+import com.contactcore.shared.api.ApiErrorCode;
+import com.contactcore.shared.api.InvalidRequestException;
 import com.contactcore.shared.api.NotFoundException;
+import com.contactcore.shared.localization.SupportedLocale;
 import com.contactcore.storage.application.ObjectStorageService;
 import com.contactcore.storage.application.StoredObject;
 import com.contactcore.storage.application.StoredObjectContent;
@@ -50,9 +54,16 @@ public class UserProfileService {
                 trim(request.phone()),
                 trim(request.jobTitle()),
                 trim(request.bio()),
-                trimRequired(request.locale()),
+                normalizeLocale(request.locale()),
                 trimRequired(request.timezone())
         );
+        return toResponse(profile);
+    }
+
+    @Transactional
+    public UserProfileResponse updateLocale(Long userId, UserLocaleUpdateRequest request) {
+        UserProfile profile = findProfile(userId);
+        profile.updateLocale(normalizeLocale(request.locale()));
         return toResponse(profile);
     }
 
@@ -138,6 +149,12 @@ public class UserProfileService {
 
     private String trimRequired(String value) {
         return value.trim();
+    }
+
+    private String normalizeLocale(String value) {
+        return SupportedLocale.find(value)
+                .map(SupportedLocale::tag)
+                .orElseThrow(() -> new InvalidRequestException(ApiErrorCode.INVALID_REQUEST, "Unsupported locale: " + value));
     }
 
     private String trim(String value) {

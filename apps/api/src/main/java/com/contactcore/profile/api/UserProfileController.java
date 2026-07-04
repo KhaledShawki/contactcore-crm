@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,6 +40,11 @@ public class UserProfileController {
     @PutMapping
     public UserProfileResponse update(@AuthenticationPrincipal UserPrincipal principal, @Valid @RequestBody UserProfileWriteRequest request) {
         return service.update(principal.id(), request);
+    }
+
+    @PatchMapping("/locale")
+    public UserProfileResponse updateLocale(@AuthenticationPrincipal UserPrincipal principal, @Valid @RequestBody UserLocaleUpdateRequest request) {
+        return service.updateLocale(principal.id(), request);
     }
 
     @PostMapping("/image")
