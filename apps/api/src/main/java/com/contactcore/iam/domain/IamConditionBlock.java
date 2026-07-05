@@ -2,6 +2,7 @@
 
 package com.contactcore.iam.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ public record IamConditionBlock(Map<IamConditionOperator, Map<String, List<Strin
         return EMPTY;
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return clauses.isEmpty();
     }
