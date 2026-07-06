@@ -54,6 +54,8 @@ public final class ManagedIamPolicies {
                                 CommercialIamActions.READ_ITEM,
                                 ConnectorIamActions.READ,
                                 AssistantIamActions.ASK,
+                                AssistantIamActions.READ_CONVERSATIONS,
+                                AssistantIamActions.USE_CRM_TOOLS,
                                 AssistantIamActions.USE_COMMERCIAL_TOOLS
                         ),
                         List.of(
@@ -64,6 +66,8 @@ public final class ManagedIamPolicies {
                                 ConnectorIamResources.instances(tenantId),
                                 ConnectorIamResources.sessions(tenantId),
                                 AssistantIamResources.sessions(tenantId),
+                                AssistantIamResources.conversations(tenantId),
+                                AssistantIamResources.crmTools(tenantId),
                                 AssistantIamResources.commercialTools(tenantId)
                         )
                 )
@@ -80,12 +84,17 @@ public final class ManagedIamPolicies {
                                 CrmIamActions.READ_BUSINESS_PARTNER,
                                 CrmIamActions.CREATE_BUSINESS_PARTNER,
                                 CrmIamActions.UPDATE_BUSINESS_PARTNER,
-                                AssistantIamActions.ASK
+                                AssistantIamActions.ASK,
+                                AssistantIamActions.READ_CONVERSATIONS,
+                                AssistantIamActions.ARCHIVE_CONVERSATION,
+                                AssistantIamActions.USE_CRM_TOOLS
                         ),
                         List.of(
                                 SchemaIamResources.manifest(tenantId),
                                 CrmIamResources.businessPartners(tenantId),
-                                AssistantIamResources.sessions(tenantId)
+                                AssistantIamResources.sessions(tenantId),
+                                AssistantIamResources.conversations(tenantId),
+                                AssistantIamResources.crmTools(tenantId)
                         )
                 ),
                 IamPolicyStatement.allow(
@@ -123,7 +132,11 @@ public final class ManagedIamPolicies {
                                 CommercialIamActions.LIST_ITEMS,
                                 CommercialIamActions.READ_ITEM,
                                 AssistantIamActions.ASK,
-                                AssistantIamActions.USE_COMMERCIAL_TOOLS
+                                AssistantIamActions.READ_CONVERSATIONS,
+                                AssistantIamActions.ARCHIVE_CONVERSATION,
+                                AssistantIamActions.USE_CRM_TOOLS,
+                                AssistantIamActions.USE_COMMERCIAL_TOOLS,
+                                AssistantIamActions.USE_REPORT_TOOLS
                         ),
                         List.of(
                                 SchemaIamResources.manifest(tenantId),
@@ -131,7 +144,10 @@ public final class ManagedIamPolicies {
                                 CommercialIamResources.documents(tenantId),
                                 CommercialIamResources.items(tenantId),
                                 AssistantIamResources.sessions(tenantId),
-                                AssistantIamResources.commercialTools(tenantId)
+                                AssistantIamResources.conversations(tenantId),
+                                AssistantIamResources.crmTools(tenantId),
+                                AssistantIamResources.commercialTools(tenantId),
+                                AssistantIamResources.reportTools(tenantId)
                         )
                 )
         ));
@@ -149,14 +165,16 @@ public final class ManagedIamPolicies {
                                 ConnectorIamActions.CONFIGURE,
                                 ConnectorIamActions.START_SYNC,
                                 CommercialIamActions.SYNC_DOCUMENTS,
-                                CommercialIamActions.SYNC_ITEMS
+                                CommercialIamActions.SYNC_ITEMS,
+                                AssistantIamActions.USE_CONNECTOR_TOOLS
                         ),
                         List.of(
                                 ConnectorIamResources.instances(tenantId),
                                 ConnectorIamResources.sessions(tenantId),
                                 ConnectorIamResources.businessPartners(tenantId),
                                 CommercialIamResources.documents(tenantId),
-                                CommercialIamResources.items(tenantId)
+                                CommercialIamResources.items(tenantId),
+                                AssistantIamResources.connectorTools(tenantId)
                         )
                 )
         ));

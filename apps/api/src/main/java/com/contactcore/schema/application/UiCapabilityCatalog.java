@@ -48,7 +48,13 @@ public class UiCapabilityCatalog {
                 definition(UiResourceKeys.CONNECTOR_INSTANCE, UiCapabilityKeys.START_SYNC, ConnectorIamActions.START_SYNC, ConnectorIamResources.instances(tenantId)),
 
                 definition(UiResourceKeys.ASSISTANT_SESSION, UiCapabilityKeys.ASK, AssistantIamActions.ASK, AssistantIamResources.sessions(tenantId)),
+                definition(UiResourceKeys.ASSISTANT_CONVERSATION, UiCapabilityKeys.READ, AssistantIamActions.READ_CONVERSATIONS, AssistantIamResources.conversations(tenantId)),
+                definition(UiResourceKeys.ASSISTANT_CONVERSATION, UiCapabilityKeys.DELETE, AssistantIamActions.ARCHIVE_CONVERSATION, AssistantIamResources.conversations(tenantId)),
+                definition(UiResourceKeys.ASSISTANT_CRM_TOOLS, UiCapabilityKeys.USE, AssistantIamActions.USE_CRM_TOOLS, AssistantIamResources.crmTools(tenantId)),
                 definition(UiResourceKeys.ASSISTANT_COMMERCIAL_TOOLS, UiCapabilityKeys.USE, AssistantIamActions.USE_COMMERCIAL_TOOLS, AssistantIamResources.commercialTools(tenantId)),
+                definition(UiResourceKeys.ASSISTANT_CONNECTOR_TOOLS, UiCapabilityKeys.USE, AssistantIamActions.USE_CONNECTOR_TOOLS, AssistantIamResources.connectorTools(tenantId)),
+                definition(UiResourceKeys.ASSISTANT_SCHEMA_TOOLS, UiCapabilityKeys.USE, AssistantIamActions.USE_SCHEMA_TOOLS, AssistantIamResources.schemaTools(tenantId)),
+                definition(UiResourceKeys.ASSISTANT_REPORT_TOOLS, UiCapabilityKeys.USE, AssistantIamActions.USE_REPORT_TOOLS, AssistantIamResources.reportTools(tenantId)),
 
                 definition(UiResourceKeys.IAM_POLICY, UiCapabilityKeys.READ, IamManagementActions.READ_POLICY, IamManagementResources.policies(tenantId)),
                 definition(UiResourceKeys.IAM_POLICY, UiCapabilityKeys.MANAGE, IamManagementActions.MANAGE_POLICY, IamManagementResources.policies(tenantId)),

@@ -11,7 +11,12 @@ public final class UiResourceKeys {
     public static final String CONNECTOR_SESSION = "connector.session";
     public static final String CONNECTOR_BUSINESS_PARTNER = "connector.businessPartner";
     public static final String ASSISTANT_SESSION = "assistant.session";
+    public static final String ASSISTANT_CONVERSATION = "assistant.conversation";
+    public static final String ASSISTANT_CRM_TOOLS = "assistant.crmTools";
     public static final String ASSISTANT_COMMERCIAL_TOOLS = "assistant.commercialTools";
+    public static final String ASSISTANT_CONNECTOR_TOOLS = "assistant.connectorTools";
+    public static final String ASSISTANT_SCHEMA_TOOLS = "assistant.schemaTools";
+    public static final String ASSISTANT_REPORT_TOOLS = "assistant.reportTools";
     public static final String IAM_POLICY = "iam.policy";
     public static final String IAM_ROLE = "iam.role";
 
