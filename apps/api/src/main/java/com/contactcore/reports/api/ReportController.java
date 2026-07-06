@@ -2,6 +2,8 @@
 
 package com.contactcore.reports.api;
 
+import com.contactcore.crm.security.BusinessPartnerAuthorizationContext;
+import com.contactcore.crm.security.CrmAuthorizationGuard;
 import com.contactcore.reports.application.ReportExportService;
 import com.contactcore.reports.application.ReportFile;
 import org.springframework.http.CacheControl;
@@ -17,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/reports")
 public class ReportController {
     private final ReportExportService exportService;
+    private final CrmAuthorizationGuard authorization;
 
-    public ReportController(ReportExportService exportService) {
+    public ReportController(ReportExportService exportService, CrmAuthorizationGuard authorization) {
         this.exportService = exportService;
+        this.authorization = authorization;
     }
 
     @GetMapping("/business-partners.xlsx")
@@ -29,11 +33,13 @@ public class ReportController {
             @RequestParam(defaultValue = "updated_desc") String sort,
             @RequestParam(defaultValue = "5000") int maxRows
     ) {
+        authorization.requireExportBusinessPartners(BusinessPartnerAuthorizationContext.forSearch(kind, q));
         return download(exportService.businessPartners(kind, q, sort, maxRows));
     }
 
     @GetMapping("/crm-summary.xlsx")
     public ResponseEntity<byte[]> crmSummary() {
+        authorization.requireExportBusinessPartners(BusinessPartnerAuthorizationContext.forOperation("crmSummaryExport"));
         return download(exportService.crmSummary());
     }
 
