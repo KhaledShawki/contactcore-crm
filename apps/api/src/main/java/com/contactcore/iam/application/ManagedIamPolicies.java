@@ -10,6 +10,8 @@ import com.contactcore.connector.security.ConnectorIamActions;
 import com.contactcore.connector.security.ConnectorIamResources;
 import com.contactcore.crm.security.CrmIamActions;
 import com.contactcore.crm.security.CrmIamResources;
+import com.contactcore.dashboard.security.DashboardIamActions;
+import com.contactcore.dashboard.security.DashboardIamResources;
 import com.contactcore.iam.domain.IamAction;
 import com.contactcore.iam.domain.IamPolicyDocument;
 import com.contactcore.iam.domain.IamPolicyStatement;
@@ -55,6 +57,7 @@ public final class ManagedIamPolicies {
                                 CommercialIamActions.LIST_ITEMS,
                                 CommercialIamActions.READ_ITEM,
                                 ConnectorIamActions.READ,
+                                DashboardIamActions.READ_COMMERCIAL_DASHBOARD,
                                 StorageIamActions.READ_OBJECT,
                                 StorageIamActions.DOWNLOAD_OBJECT,
                                 AssistantIamActions.ASK,
@@ -69,6 +72,7 @@ public final class ManagedIamPolicies {
                                 CommercialIamResources.items(tenantId),
                                 ConnectorIamResources.instances(tenantId),
                                 ConnectorIamResources.sessions(tenantId),
+                                DashboardIamResources.commercialDashboard(tenantId),
                                 StorageIamResources.businessPartnerDocuments(tenantId),
                                 StorageIamResources.profileImages(tenantId),
                                 AssistantIamResources.sessions(tenantId),
@@ -116,11 +120,13 @@ public final class ManagedIamPolicies {
                                 CommercialIamActions.READ_DOCUMENT,
                                 CommercialIamActions.LIST_ITEMS,
                                 CommercialIamActions.READ_ITEM,
+                                DashboardIamActions.READ_COMMERCIAL_DASHBOARD,
                                 AssistantIamActions.USE_COMMERCIAL_TOOLS
                         ),
                         List.of(
                                 CommercialIamResources.documents(tenantId),
                                 CommercialIamResources.items(tenantId),
+                                DashboardIamResources.commercialDashboard(tenantId),
                                 AssistantIamResources.commercialTools(tenantId)
                         )
                 )
@@ -143,6 +149,8 @@ public final class ManagedIamPolicies {
                                 CommercialIamActions.EXPORT_DOCUMENTS,
                                 CommercialIamActions.LIST_ITEMS,
                                 CommercialIamActions.READ_ITEM,
+                                DashboardIamActions.READ_COMMERCIAL_DASHBOARD,
+                                DashboardIamActions.READ_COMMERCIAL_FINANCIALS,
                                 StorageIamActions.READ_OBJECT,
                                 StorageIamActions.UPLOAD_OBJECT,
                                 StorageIamActions.DOWNLOAD_OBJECT,
@@ -159,6 +167,8 @@ public final class ManagedIamPolicies {
                                 CrmIamResources.businessPartners(tenantId),
                                 CommercialIamResources.documents(tenantId),
                                 CommercialIamResources.items(tenantId),
+                                DashboardIamResources.commercialDashboard(tenantId),
+                                DashboardIamResources.commercialFinancials(tenantId),
                                 StorageIamResources.businessPartnerDocuments(tenantId),
                                 StorageIamResources.profileImages(tenantId),
                                 AssistantIamResources.sessions(tenantId),
