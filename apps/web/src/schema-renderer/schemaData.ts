@@ -14,10 +14,6 @@ export function asArray<T = Record<string, unknown>>(value: unknown): T[] {
   return Array.isArray(value) ? value as T[] : [];
 }
 
-export function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
 export function readString(row: Record<string, unknown>, key: string | null | undefined): string {
   if (!key) return '';
   const value = row[key];

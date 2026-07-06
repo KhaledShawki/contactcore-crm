@@ -32,7 +32,9 @@ class UiSchemaServiceTest {
                         UiCapabilityKeys.DELETE, false,
                         UiCapabilityKeys.EXPORT, false
                 )),
-                new UiResourceCapabilities(UiResourceKeys.ASSISTANT_SESSION, Map.of(UiCapabilityKeys.ASK, true))
+                new UiResourceCapabilities(UiResourceKeys.ASSISTANT_SESSION, Map.of(UiCapabilityKeys.ASK, true)),
+                new UiResourceCapabilities(UiResourceKeys.DASHBOARD_COMMERCIAL, Map.of(UiCapabilityKeys.READ, true)),
+                new UiResourceCapabilities(UiResourceKeys.DASHBOARD_COMMERCIAL_FINANCIALS, Map.of(UiCapabilityKeys.READ, true))
         )));
     }
 
@@ -67,7 +69,13 @@ class UiSchemaServiceTest {
         var manifest = service.manifest();
 
         assertThat(manifest.routes()).extracting(route -> route.path())
-                .contains("/dashboard", "/marketing-sources", "/reports", "/settings");
+                .contains("/dashboard", "/dashboard/commercial", "/marketing-sources", "/reports", "/settings");
+        assertThat(manifest.routes()).anySatisfy(route -> {
+            assertThat(route.path()).isEqualTo("/dashboard/commercial");
+            assertThat(route.screenKey()).isEqualTo("commercialDashboard");
+            assertThat(route.requiredCapability().resourceKey()).isEqualTo(UiResourceKeys.DASHBOARD_COMMERCIAL);
+            assertThat(route.visible()).isTrue();
+        });
         assertThat(manifest.routes()).anySatisfy(route -> {
             assertThat(route.path()).isEqualTo("/customers");
             assertThat(route.requiredCapability().resourceKey()).isEqualTo(UiResourceKeys.CRM_BUSINESS_PARTNER);
@@ -124,6 +132,49 @@ class UiSchemaServiceTest {
                     assertThat(widget.tableColumns()).extracting(column -> column.key())
                             .containsExactly("kind", "code", "name", "status", "marketingSource");
                 });
+    }
+
+
+    @Test
+    void commercialDashboardScreenUsesCommercialDataSourcesAndFinancialWidgetVisibility() {
+        var screen = service.screen("commercialDashboard");
+
+        assertThat(screen.layout()).isNotNull();
+        assertThat(screen.capabilities().resourceKey()).isEqualTo(UiResourceKeys.DASHBOARD_COMMERCIAL);
+        assertThat(screen.layout().sections()).extracting(section -> section.key())
+                .containsExactly("commercialOverview", "salesPerformance", "commercialRankings", "commercialReceivables");
+        assertThat(screen.layout().sections()).flatExtracting(section -> section.widgets())
+                .anySatisfy(widget -> {
+                    assertThat(widget.key()).isEqualTo("commercialSummaryKpis");
+                    assertThat(widget.dataSource().key()).isEqualTo("commercialDashboard.summary");
+                    assertThat(widget.requiredCapability().resourceKey()).isEqualTo(UiResourceKeys.DASHBOARD_COMMERCIAL_FINANCIALS);
+                    assertThat(widget.visible()).isTrue();
+                })
+                .anySatisfy(widget -> {
+                    assertThat(widget.key()).isEqualTo("commercialTopSellingItems");
+                    assertThat(widget.type()).isEqualTo("barChart");
+                    assertThat(widget.bindings()).containsEntry("label", "itemName").containsEntry("value", "netAmount");
+                })
+                .anySatisfy(widget -> {
+                    assertThat(widget.key()).isEqualTo("commercialUnpaidInvoices");
+                    assertThat(widget.type()).isEqualTo("table");
+                    assertThat(widget.tableColumns()).extracting(column -> column.key())
+                            .containsExactly("businessPartnerName", "businessPartnerCode", "openAmount", "invoiceCount", "oldestDueDate", "maxOverdueDays");
+                });
+    }
+
+    @Test
+    void commercialDashboardHidesFinancialWidgetsWithoutFinancialPermission() {
+        when(capabilityResolver.resolveCurrentSubjectCapabilities()).thenReturn(new UiCapabilitySnapshot(List.of(
+                new UiResourceCapabilities(UiResourceKeys.DASHBOARD_COMMERCIAL, Map.of(UiCapabilityKeys.READ, true)),
+                new UiResourceCapabilities(UiResourceKeys.DASHBOARD_COMMERCIAL_FINANCIALS, Map.of(UiCapabilityKeys.READ, false))
+        )));
+
+        var screen = service.screen("commercialDashboard");
+
+        assertThat(screen.layout().sections()).flatExtracting(section -> section.widgets())
+                .filteredOn(widget -> UiResourceKeys.DASHBOARD_COMMERCIAL_FINANCIALS.equals(widget.requiredCapability() == null ? null : widget.requiredCapability().resourceKey()))
+                .allSatisfy(widget -> assertThat(widget.visible()).isFalse());
     }
 
     @Test

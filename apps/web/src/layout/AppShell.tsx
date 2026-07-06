@@ -39,7 +39,9 @@ export default function AppShell() {
   }, [dispatch, uiSettings]);
 
   const visibleRoutes = manifest?.routes.filter(routeIsVisible) ?? [];
-  const activeRoute = visibleRoutes.find((route) => pathname === route.path || pathname.startsWith(`${route.path}/`));
+  const activeRoute = [...visibleRoutes]
+    .sort((left, right) => right.path.length - left.path.length)
+    .find((route) => pathname === route.path || pathname.startsWith(`${route.path}/`));
   const activeRouteLabel = activeRoute ? t(activeRoute.labelKey ?? `navigation.${activeRoute.screenKey}`, undefined) : t('layout.topbar.workspace');
 
   if (isLoading) return <LoadingState />;
@@ -97,6 +99,7 @@ export default function AppShell() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<SchemaDashboardPage screenKey="dashboard" />} />
+            <Route path="/dashboard/commercial" element={<SchemaDashboardPage screenKey="commercialDashboard" />} />
             <Route path="/customers" element={<SchemaListPage screenKey="customers" />} />
             <Route path="/customers/:id" element={<SchemaFormPage screenKey="customers" />} />
             <Route path="/leads" element={<SchemaListPage screenKey="leads" />} />

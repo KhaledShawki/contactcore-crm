@@ -27,7 +27,8 @@ function formatMetric(value: number, unit: string, locale: string): string {
   if (unit === '%') {
     return `${formatNumber(Number(value.toFixed(1)), locale)}%`;
   }
-  return formatNumber(value, locale);
+  const formatted = formatNumber(value, locale);
+  return unit ? `${formatted} ${unit}` : formatted;
 }
 
 function withFallback(translated: string, key: string, fallback: string): string {

@@ -37,6 +37,13 @@ public class UiSchemaService {
     private static final String MARKETING_SOURCE_RESOURCE = "marketing.source";
     private static final String PROFILE_RESOURCE = "profile.user";
     private static final UiWidgetDataSource ANALYTICS_DASHBOARD = UiWidgetDataSource.of("analytics.dashboard", "/dashboard");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_SUMMARY = UiWidgetDataSource.of("commercialDashboard.summary", "/dashboard/commercial/summary");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_TOP_SELLING_ITEMS = UiWidgetDataSource.of("commercialDashboard.topSellingItems", "/dashboard/commercial/top-selling-items");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_TOP_CUSTOMERS = UiWidgetDataSource.of("commercialDashboard.topCustomers", "/dashboard/commercial/top-customers");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_UNPAID_INVOICES = UiWidgetDataSource.of("commercialDashboard.unpaidInvoices", "/dashboard/commercial/unpaid-invoices");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_INVOICE_AGING = UiWidgetDataSource.of("commercialDashboard.invoiceAging", "/dashboard/commercial/invoice-aging");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_SALES_TREND = UiWidgetDataSource.of("commercialDashboard.salesTrend", "/dashboard/commercial/sales-trend");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_SALES_BY_DOCUMENT_TYPE = UiWidgetDataSource.of("commercialDashboard.salesByDocumentType", "/dashboard/commercial/sales-by-document-type");
 
     private final LeadSourceRepository leadSources;
     private final UiCapabilityResolver capabilityResolver;
@@ -50,6 +57,7 @@ public class UiSchemaService {
         UiCapabilitySnapshot capabilities = capabilityResolver.resolveCurrentSubjectCapabilities();
         return new UiManifest("ContactCore CRM", List.of(
                 route("/dashboard", "Dashboard", "navigation.dashboard", "dashboard", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
+                route("/dashboard/commercial", "Commercial Dashboard", "navigation.commercialDashboard", "commercialDashboard", capability(UiResourceKeys.DASHBOARD_COMMERCIAL, UiCapabilityKeys.READ), capabilities),
                 route("/customers", "Customers", "navigation.customers", "customers", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
                 route("/leads", "Leads", "navigation.leads", "leads", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
                 route("/suppliers", "Suppliers", "navigation.suppliers", "suppliers", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
@@ -65,6 +73,7 @@ public class UiSchemaService {
         UiCapabilitySnapshot capabilities = capabilityResolver.resolveCurrentSubjectCapabilities();
         return switch (key) {
             case "dashboard" -> dashboardScreen(capabilities);
+            case "commercialDashboard" -> commercialDashboardScreen(capabilities);
             case "customers" -> crmScreen("customers", "Customers", "CUSTOMER", "ACTIVE", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
             case "leads" -> crmScreen("leads", "Leads", "LEAD", "NEW", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
             case "suppliers" -> crmScreen("suppliers", "Suppliers", "SUPPLIER", "ACTIVE", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
@@ -168,6 +177,108 @@ public class UiSchemaService {
                 List.of(),
                 List.of(),
                 crmCapabilities
+        );
+    }
+
+
+    private static UiScreen commercialDashboardScreen(UiCapabilitySnapshot capabilities) {
+        UiResourceCapabilities dashboardCapabilities = capabilities.resource(UiResourceKeys.DASHBOARD_COMMERCIAL);
+        UiCapabilityReference dashboardRead = capability(UiResourceKeys.DASHBOARD_COMMERCIAL, UiCapabilityKeys.READ);
+        UiCapabilityReference financialRead = capability(UiResourceKeys.DASHBOARD_COMMERCIAL_FINANCIALS, UiCapabilityKeys.READ);
+
+        UiWidget summaryKpis = widget("commercialSummaryKpis", "kpiGrid", "Commercial overview", "commercialDashboard.sections.overview")
+                .dataSource(COMMERCIAL_DASHBOARD_SUMMARY)
+                .dataPath("kpis")
+                .columns(4)
+                .requiredCapability(financialRead)
+                .visible(capabilities.allows(financialRead))
+                .build();
+
+        return new UiScreen(
+                "commercialDashboard",
+                "Commercial Dashboard",
+                "DASHBOARD",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                UiScreenLayout.dashboard(List.of(
+                        UiLayoutSection.of("commercialOverview", "Commercial overview", "commercialDashboard.sections.overview", 1, List.of(
+                                summaryKpis
+                        )),
+                        UiLayoutSection.of("salesPerformance", "Sales performance", "commercialDashboard.sections.salesPerformance", 2, List.of(
+                                widget("commercialSalesTrend", "lineChart", "Sales trend", "commercialDashboard.charts.salesTrend.title")
+                                        .description("Monthly sales amount from SAP Business One invoices.")
+                                        .descriptionKey("commercialDashboard.charts.salesTrend.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_SALES_TREND)
+                                        .bindings(chartBindings("period", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build(),
+                                widget("commercialSalesByDocumentType", "barChart", "Sales by document type", "commercialDashboard.charts.salesByDocumentType.title")
+                                        .description("Commercial document totals grouped by document type.")
+                                        .descriptionKey("commercialDashboard.charts.salesByDocumentType.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_SALES_BY_DOCUMENT_TYPE)
+                                        .bindings(chartBindings("documentType", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build()
+                        )),
+                        UiLayoutSection.of("commercialRankings", "Rankings", "commercialDashboard.sections.rankings", 2, List.of(
+                                widget("commercialTopSellingItems", "barChart", "Best-selling items", "commercialDashboard.charts.topSellingItems.title")
+                                        .description("Items ranked by invoice net amount.")
+                                        .descriptionKey("commercialDashboard.charts.topSellingItems.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_TOP_SELLING_ITEMS)
+                                        .bindings(chartBindings("itemName", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build(),
+                                widget("commercialTopCustomers", "barChart", "Top customers", "commercialDashboard.charts.topCustomers.title")
+                                        .description("Customers ranked by invoice amount.")
+                                        .descriptionKey("commercialDashboard.charts.topCustomers.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_TOP_CUSTOMERS)
+                                        .bindings(chartBindings("businessPartnerName", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build()
+                        )),
+                        UiLayoutSection.of("commercialReceivables", "Receivables", "commercialDashboard.sections.receivables", 2, List.of(
+                                widget("commercialInvoiceAging", "barChart", "Invoice aging", "commercialDashboard.charts.invoiceAging.title")
+                                        .description("Open invoice amount grouped by aging bucket.")
+                                        .descriptionKey("commercialDashboard.charts.invoiceAging.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_INVOICE_AGING)
+                                        .bindings(chartBindings("bucket", "openAmount"))
+                                        .columns(1)
+                                        .requiredCapability(financialRead)
+                                        .visible(capabilities.allows(financialRead))
+                                        .build(),
+                                widget("commercialUnpaidInvoices", "table", "Customers with unpaid invoices", "commercialDashboard.tables.unpaidInvoices.title")
+                                        .description("Customers ranked by open invoice amount.")
+                                        .descriptionKey("commercialDashboard.tables.unpaidInvoices.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_UNPAID_INVOICES)
+                                        .columns(1)
+                                        .requiredCapability(financialRead)
+                                        .visible(capabilities.allows(financialRead))
+                                        .tableColumns(List.of(
+                                                UiWidgetTableColumn.of("businessPartnerName", "Customer", "commercialDashboard.columns.customer", "sourceText"),
+                                                UiWidgetTableColumn.of("businessPartnerCode", "Code", "schema.field.code", "code"),
+                                                UiWidgetTableColumn.of("openAmount", "Open amount", "commercialDashboard.columns.openAmount", "number"),
+                                                UiWidgetTableColumn.of("invoiceCount", "Invoices", "commercialDashboard.columns.invoiceCount", "number"),
+                                                UiWidgetTableColumn.of("oldestDueDate", "Oldest due date", "commercialDashboard.columns.oldestDueDate", "date"),
+                                                UiWidgetTableColumn.of("maxOverdueDays", "Max overdue days", "commercialDashboard.columns.maxOverdueDays", "number")
+                                        ))
+                                        .build()
+                        ))
+                )),
+                List.of(),
+                List.of(),
+                dashboardCapabilities
         );
     }
 
