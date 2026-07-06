@@ -10,7 +10,7 @@ import ErrorState from '../components/ErrorState';
 import SchemaListPage from '../pages/SchemaListPage';
 import SchemaFormPage from '../pages/SchemaFormPage';
 import ProfilePage from '../pages/ProfilePage';
-import DashboardPage from '../pages/DashboardPage';
+import SchemaDashboardPage from '../schema-renderer/SchemaDashboardPage';
 import MarketingSourcesPage from '../pages/MarketingSourcesPage';
 import ReportPage from '../pages/ReportPage';
 import BlueButton from '../components/BlueButton';
@@ -96,7 +96,7 @@ export default function AppShell() {
         <section className="content">
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<SchemaDashboardPage screenKey="dashboard" />} />
             <Route path="/customers" element={<SchemaListPage screenKey="customers" />} />
             <Route path="/customers/:id" element={<SchemaFormPage screenKey="customers" />} />
             <Route path="/leads" element={<SchemaListPage screenKey="leads" />} />

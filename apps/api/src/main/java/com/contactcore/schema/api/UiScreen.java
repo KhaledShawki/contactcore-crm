@@ -14,6 +14,7 @@ public record UiScreen(
         String updateEndpoint,
         String archiveEndpoint,
         String documentEndpoint,
+        UiScreenLayout layout,
         List<UiField> fields,
         List<UiFormRule> validationRules,
         UiResourceCapabilities capabilities

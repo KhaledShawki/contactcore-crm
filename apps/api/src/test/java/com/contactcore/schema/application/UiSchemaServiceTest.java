@@ -94,8 +94,36 @@ class UiSchemaServiceTest {
         });
         assertThat(manifest.routes()).anySatisfy(route -> {
             assertThat(route.path()).isEqualTo("/dashboard");
-            assertThat(route.visible()).isTrue();
+            assertThat(route.visible()).isFalse();
         });
+    }
+
+    @Test
+    void dashboardScreenUsesSchemaDrivenLayoutWidgets() {
+        var screen = service.screen("dashboard");
+
+        assertThat(screen.layout()).isNotNull();
+        assertThat(screen.layout().type()).isEqualTo("dashboard");
+        assertThat(screen.layout().sections()).extracting(section -> section.key())
+                .containsExactly("overview", "crmInsights", "relationships", "recent");
+        assertThat(screen.layout().sections()).flatExtracting(section -> section.widgets())
+                .anySatisfy(widget -> {
+                    assertThat(widget.key()).isEqualTo("overviewKpis");
+                    assertThat(widget.type()).isEqualTo("kpiGrid");
+                    assertThat(widget.dataSource().key()).isEqualTo("analytics.dashboard");
+                    assertThat(widget.dataPath()).isEqualTo("kpis");
+                })
+                .anySatisfy(widget -> {
+                    assertThat(widget.key()).isEqualTo("newByMonth");
+                    assertThat(widget.type()).isEqualTo("lineChart");
+                    assertThat(widget.bindings()).containsEntry("label", "month");
+                })
+                .anySatisfy(widget -> {
+                    assertThat(widget.key()).isEqualTo("recentBusinessPartners");
+                    assertThat(widget.type()).isEqualTo("table");
+                    assertThat(widget.tableColumns()).extracting(column -> column.key())
+                            .containsExactly("kind", "code", "name", "status", "marketingSource");
+                });
     }
 
     @Test
