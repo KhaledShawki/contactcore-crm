@@ -2,8 +2,9 @@
 
 import { describe, expect, it } from 'vitest';
 import { capabilityReferenceIsAllowed, findCapabilitySet, hasCapability, routeIsVisible } from './capabilities';
+import type { UiResourceCapabilities } from './types';
 
-const capabilitySets = [
+const capabilitySets: UiResourceCapabilities[] = [
   { resourceKey: 'crm.businessPartner', capabilities: { list: true, create: false } },
   { resourceKey: 'assistant.session', capabilities: { ask: true } },
 ];
