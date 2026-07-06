@@ -16,6 +16,7 @@ import com.contactcore.dashboard.api.UnpaidInvoiceCustomerResponse;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -25,6 +26,7 @@ public class CommercialDashboardService {
     private final CommercialDashboardAggregator aggregator;
     private final Clock clock;
 
+    @Autowired
     public CommercialDashboardService(ConnectorSessionService sessions,
                                       SapCommercialDashboardClient sapClient,
                                       CommercialDashboardAggregator aggregator) {
