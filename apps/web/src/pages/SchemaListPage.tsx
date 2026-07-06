@@ -20,6 +20,7 @@ import { useGetConnectorSessionQuery, useSearchConnectorBusinessPartnersQuery } 
 import { useDownloadBusinessPartnerReportMutation } from '../reports/reportsApi';
 import { saveDownloadedReport } from '../reports/reportDownload';
 import { useGetScreenQuery } from '../schema/schemaApi';
+import { hasCapability } from '../schema/capabilities';
 import type { BusinessPartner } from '../schema/types';
 import { useNotifications } from '../notifications/useNotifications';
 import { useSingleFlightByKey } from '../hooks/useSingleFlightAction';
@@ -53,6 +54,11 @@ export default function SchemaListPage({ screenKey }: Props) {
   const [downloadReport, { isLoading: reportDownloading }] = useDownloadBusinessPartnerReportMutation();
   const { run: runArchiveTask, isRunning: isArchiveRunning } = useSingleFlightByKey<number>();
 
+  const canCreate = hasCapability(screen?.capabilities, 'create');
+  const canRead = hasCapability(screen?.capabilities, 'read');
+  const canDelete = hasCapability(screen?.capabilities, 'delete');
+  const canExport = hasCapability(screen?.capabilities, 'export');
+
   function updateQuery(value: string) {
     setQuery(value);
     setPage(0);
@@ -69,7 +75,7 @@ export default function SchemaListPage({ screenKey }: Props) {
   }
 
   const archiveRecord = useCallback(async (row: BusinessPartner) => {
-    if (connectorMode || !row.id || !screen) return;
+    if (connectorMode || !canDelete || !row.id || !screen) return;
     const entityLabel = singularTitle(t(`navigation.${screen.key}`));
     const shouldMoveToPreviousPage = page > 0 && data?.items.length === 1;
     await runArchiveTask(row.id, async () => {
@@ -83,10 +89,10 @@ export default function SchemaListPage({ screenKey }: Props) {
         notifyError(t('crm.errors.archive', { entity: entityLabel.toLowerCase() }));
       }
     });
-  }, [archivePartner, connectorMode, data?.items.length, notifyError, notifySuccess, page, runArchiveTask, screen, t]);
+  }, [archivePartner, canDelete, connectorMode, data?.items.length, notifyError, notifySuccess, page, runArchiveTask, screen, t]);
 
   const exportReport = useCallback(async () => {
-    if (!screen || connectorMode) return;
+    if (!screen || connectorMode || !canExport) return;
     try {
       const report = await downloadReport({ kind: screen.entityKind, query, sort }).unwrap();
       saveDownloadedReport(report);
@@ -94,7 +100,7 @@ export default function SchemaListPage({ screenKey }: Props) {
     } catch {
       notifyError(t('crm.errors.export', { title: t(`navigation.${screen.key}`).toLowerCase() }));
     }
-  }, [connectorMode, downloadReport, notifyError, notifySuccess, query, screen, sort, t]);
+  }, [canExport, connectorMode, downloadReport, notifyError, notifySuccess, query, screen, sort, t]);
 
   const columns = useMemo<BlueColumn<BusinessPartner>[]>(() => {
     if (!screen) return [];
@@ -115,8 +121,8 @@ export default function SchemaListPage({ screenKey }: Props) {
         align: 'right',
         render: (row) => (
           <div className="row-actions">
-            <Link to={`/${screenKey}/${encodeURIComponent(String(row.externalId ?? row.id ?? row.code))}`}>{t('common.actions.open')}</Link>
-            {!connectorMode && (
+            {canRead && <Link to={`/${screenKey}/${encodeURIComponent(String(row.externalId ?? row.id ?? row.code))}`}>{t('common.actions.open')}</Link>}
+            {!connectorMode && canDelete && (
               <button type="button" className="link-button danger-link" disabled={row.id ? isArchiveRunning(row.id) : false} onClick={() => { void archiveRecord(row); }}>
                 {row.id && isArchiveRunning(row.id) ? t('crm.actions.archiving') : t('crm.actions.archive')}
               </button>
@@ -125,7 +131,7 @@ export default function SchemaListPage({ screenKey }: Props) {
         ),
       },
     ];
-  }, [archiveRecord, connectorMode, isArchiveRunning, screen, screenKey, t]);
+  }, [archiveRecord, canDelete, canRead, connectorMode, isArchiveRunning, screen, screenKey, t]);
 
   if (screenLoading) return <LoadingState />;
   if (screenError || rowsError || !screen) return <ErrorState message={t('crm.errors.loadRecords')} />;
@@ -138,12 +144,14 @@ export default function SchemaListPage({ screenKey }: Props) {
       title={connectorMode && connectorSession?.connectorDisplayName ? t('crm.form.fromConnector', { entity: t(`navigation.${screen.key}`), connector: connectorSession.connectorDisplayName }) : t(`navigation.${screen.key}`)}
       action={(
         <div className="card-actions">
-          {!connectorMode && (
+          {!connectorMode && (canExport || canCreate) && (
             <>
-              <BlueButton type="button" variant="secondary" disabled={reportDownloading} onClick={() => { void exportReport(); }}>
-                {reportDownloading ? t('crm.actions.exporting') : t('crm.actions.export')}
-              </BlueButton>
-              <Link className="blue-button blue-button--primary" to={`/${screenKey}/new`}>{t('crm.actions.new')}</Link>
+              {canExport && (
+                <BlueButton type="button" variant="secondary" disabled={reportDownloading} onClick={() => { void exportReport(); }}>
+                  {reportDownloading ? t('crm.actions.exporting') : t('crm.actions.export')}
+                </BlueButton>
+              )}
+              {canCreate && <Link className="blue-button blue-button--primary" to={`/${screenKey}/new`}>{t('crm.actions.new')}</Link>}
             </>
           )}
         </div>

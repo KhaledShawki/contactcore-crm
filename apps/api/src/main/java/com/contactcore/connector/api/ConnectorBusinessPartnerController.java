@@ -6,6 +6,8 @@ import com.contactcore.connector.application.ConnectorBusinessPartnerQueryServic
 import com.contactcore.connector.model.CrmBusinessPartnerSearchCriteria;
 import com.contactcore.connector.model.CrmBusinessPartnerType;
 import com.contactcore.connector.model.CrmBusinessPartnerView;
+import com.contactcore.connector.security.ConnectorAuthorizationContext;
+import com.contactcore.connector.security.ConnectorAuthorizationGuard;
 import com.contactcore.security.application.UserPrincipal;
 import com.contactcore.shared.api.PageResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/connectors/business-partners")
 public class ConnectorBusinessPartnerController {
     private final ConnectorBusinessPartnerQueryService service;
+    private final ConnectorAuthorizationGuard authorization;
 
-    public ConnectorBusinessPartnerController(ConnectorBusinessPartnerQueryService service) {
+    public ConnectorBusinessPartnerController(ConnectorBusinessPartnerQueryService service, ConnectorAuthorizationGuard authorization) {
         this.service = service;
+        this.authorization = authorization;
     }
 
     @GetMapping
@@ -33,11 +37,14 @@ public class ConnectorBusinessPartnerController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "code_asc") String sort
     ) {
-        return service.search(principal.id(), new CrmBusinessPartnerSearchCriteria(q, CrmBusinessPartnerType.optional(type), page, size, sort));
+        CrmBusinessPartnerSearchCriteria criteria = new CrmBusinessPartnerSearchCriteria(q, CrmBusinessPartnerType.optional(type), page, size, sort);
+        authorization.requireReadBusinessPartners(ConnectorAuthorizationContext.forBusinessPartnerSearch(criteria));
+        return service.search(principal.id(), criteria);
     }
 
     @GetMapping("/{externalId}")
     public CrmBusinessPartnerView get(@AuthenticationPrincipal UserPrincipal principal, @PathVariable String externalId) {
+        authorization.requireReadBusinessPartner(externalId);
         return service.get(principal.id(), externalId);
     }
 }

@@ -6,5 +6,6 @@ import java.util.List;
 
 public record UiManifest(
         String appName,
-        List<UiRoute> routes
+        List<UiRoute> routes,
+        List<UiResourceCapabilities> capabilities
 ) {}

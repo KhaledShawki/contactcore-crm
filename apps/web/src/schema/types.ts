@@ -2,16 +2,29 @@
 
 export type FieldType = 'hidden' | 'text' | 'textarea' | 'select' | 'number' | 'checkbox';
 
+export interface UiCapabilityReference {
+  resourceKey: string;
+  capability: string;
+}
+
+export interface UiResourceCapabilities {
+  resourceKey: string;
+  capabilities: Record<string, boolean>;
+}
+
 export interface UiRoute {
   path: string;
   label: string;
   labelKey?: string | null;
   screenKey: string;
+  requiredCapability?: UiCapabilityReference | null;
+  visible?: boolean;
 }
 
 export interface UiManifest {
   appName: string;
   routes: UiRoute[];
+  capabilities?: UiResourceCapabilities[];
 }
 
 export interface UiValidation {
@@ -58,6 +71,7 @@ export interface UiScreen {
   documentEndpoint: string;
   fields: UiField[];
   validationRules?: UiFormRule[];
+  capabilities?: UiResourceCapabilities | null;
 }
 
 export interface ContactPerson {

@@ -6,5 +6,7 @@ public record UiRoute(
         String path,
         String label,
         String labelKey,
-        String screenKey
+        String screenKey,
+        UiCapabilityReference requiredCapability,
+        boolean visible
 ) {}

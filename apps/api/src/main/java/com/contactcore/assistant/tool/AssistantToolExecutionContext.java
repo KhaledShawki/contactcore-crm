@@ -2,7 +2,10 @@
 
 package com.contactcore.assistant.tool;
 
+import com.contactcore.assistant.retrieval.AssistantRetrievalType;
+
 public record AssistantToolExecutionContext(
         Long userId,
-        int maxResults
+        int maxResults,
+        AssistantRetrievalType retrievalType
 ) {}

@@ -5,6 +5,7 @@ package com.contactcore.profile.api;
 import com.contactcore.profile.application.UserProfileService;
 import com.contactcore.security.application.UserPrincipal;
 import com.contactcore.storage.application.StoredObjectContent;
+import com.contactcore.storage.security.StorageAuthorizationGuard;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import org.springframework.core.io.Resource;
@@ -27,9 +28,11 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/profile")
 public class UserProfileController {
     private final UserProfileService service;
+    private final StorageAuthorizationGuard storageAuthorization;
 
-    public UserProfileController(UserProfileService service) {
+    public UserProfileController(UserProfileService service, StorageAuthorizationGuard storageAuthorization) {
         this.service = service;
+        this.storageAuthorization = storageAuthorization;
     }
 
     @GetMapping
@@ -49,11 +52,13 @@ public class UserProfileController {
 
     @PostMapping("/image")
     public UserProfileResponse uploadImage(@AuthenticationPrincipal UserPrincipal principal, @RequestParam("file") MultipartFile file) throws IOException {
+        storageAuthorization.requireUploadProfileImage(principal.id());
         return service.uploadImage(principal.id(), file);
     }
 
     @GetMapping("/image/content")
     public ResponseEntity<Resource> imageContent(@AuthenticationPrincipal UserPrincipal principal) throws IOException {
+        storageAuthorization.requireDownloadProfileImage(principal.id());
         StoredObjectContent content = service.downloadProfileImage(principal.id());
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noStore())

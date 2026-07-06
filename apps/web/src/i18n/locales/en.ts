@@ -12,6 +12,7 @@ const en = {
   'common.actions.upload': 'Upload',
   'common.empty.none': 'None',
   'common.empty.noRecords': 'No records found.',
+  'common.errors.forbidden': 'You do not have permission to perform this action.',
   'common.loading.default': 'Loading...',
   'common.status.refreshing': 'Refreshing',
   'common.user': 'User',
