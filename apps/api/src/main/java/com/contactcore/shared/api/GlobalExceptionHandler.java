@@ -2,6 +2,8 @@
 
 package com.contactcore.shared.api;
 
+import com.contactcore.iam.application.IamAccessDeniedException;
+import com.contactcore.iam.application.IamAuthenticationRequiredException;
 import com.contactcore.shared.localization.LocaleContext;
 import com.contactcore.shared.localization.LocaleContextResolver;
 import com.contactcore.shared.localization.LocalizedMessageService;
@@ -61,6 +63,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FileScanningUnavailableException.class)
     ResponseEntity<ApiError> fileScannerUnavailable(FileScanningUnavailableException ex, HttpServletRequest request) {
         return build(HttpStatus.SERVICE_UNAVAILABLE, ApiErrorCode.FILE_SCANNING_UNAVAILABLE, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(IamAuthenticationRequiredException.class)
+    ResponseEntity<ApiError> iamAuthenticationRequired(IamAuthenticationRequiredException ex, HttpServletRequest request) {
+        return build(HttpStatus.UNAUTHORIZED, ex, request);
+    }
+
+    @ExceptionHandler(IamAccessDeniedException.class)
+    ResponseEntity<ApiError> iamAccessDenied(IamAccessDeniedException ex, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, ex, request);
     }
 
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
