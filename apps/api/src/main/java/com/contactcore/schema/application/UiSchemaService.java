@@ -6,14 +6,21 @@ import com.contactcore.crm.domain.LeadSourceRepository;
 import com.contactcore.schema.api.UiCapabilityReference;
 import com.contactcore.schema.api.UiField;
 import com.contactcore.schema.api.UiFormRule;
+import com.contactcore.schema.api.UiLayoutSection;
 import com.contactcore.schema.api.UiManifest;
 import com.contactcore.schema.api.UiResourceCapabilities;
 import com.contactcore.schema.api.UiRoute;
+import com.contactcore.schema.api.UiScreenLayout;
+import com.contactcore.schema.api.UiScreenFilter;
+import com.contactcore.schema.api.UiWidget;
+import com.contactcore.schema.api.UiWidgetDataSource;
+import com.contactcore.schema.api.UiWidgetTableColumn;
 import com.contactcore.schema.api.UiScreen;
 import com.contactcore.schema.api.UiValidation;
 import com.contactcore.shared.api.NotFoundException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,6 +37,14 @@ public class UiSchemaService {
 
     private static final String MARKETING_SOURCE_RESOURCE = "marketing.source";
     private static final String PROFILE_RESOURCE = "profile.user";
+    private static final UiWidgetDataSource ANALYTICS_DASHBOARD = UiWidgetDataSource.of("analytics.dashboard", "/dashboard");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_SUMMARY = UiWidgetDataSource.of("commercialDashboard.summary", "/dashboard/commercial/summary");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_TOP_SELLING_ITEMS = UiWidgetDataSource.of("commercialDashboard.topSellingItems", "/dashboard/commercial/top-selling-items");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_TOP_CUSTOMERS = UiWidgetDataSource.of("commercialDashboard.topCustomers", "/dashboard/commercial/top-customers");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_UNPAID_INVOICES = UiWidgetDataSource.of("commercialDashboard.unpaidInvoices", "/dashboard/commercial/unpaid-invoices");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_INVOICE_AGING = UiWidgetDataSource.of("commercialDashboard.invoiceAging", "/dashboard/commercial/invoice-aging");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_SALES_TREND = UiWidgetDataSource.of("commercialDashboard.salesTrend", "/dashboard/commercial/sales-trend");
+    private static final UiWidgetDataSource COMMERCIAL_DASHBOARD_SALES_BY_DOCUMENT_TYPE = UiWidgetDataSource.of("commercialDashboard.salesByDocumentType", "/dashboard/commercial/sales-by-document-type");
 
     private final LeadSourceRepository leadSources;
     private final UiCapabilityResolver capabilityResolver;
@@ -42,7 +57,8 @@ public class UiSchemaService {
     public UiManifest manifest() {
         UiCapabilitySnapshot capabilities = capabilityResolver.resolveCurrentSubjectCapabilities();
         return new UiManifest("ContactCore CRM", List.of(
-                route("/dashboard", "Dashboard", "navigation.dashboard", "dashboard", null, capabilities),
+                route("/dashboard", "Dashboard", "navigation.dashboard", "dashboard", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
+                route("/dashboard/commercial", "Commercial Dashboard", "navigation.commercialDashboard", "commercialDashboard", capability(UiResourceKeys.DASHBOARD_COMMERCIAL, UiCapabilityKeys.READ), capabilities),
                 route("/customers", "Customers", "navigation.customers", "customers", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
                 route("/leads", "Leads", "navigation.leads", "leads", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
                 route("/suppliers", "Suppliers", "navigation.suppliers", "suppliers", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
@@ -57,6 +73,8 @@ public class UiSchemaService {
     public UiScreen screen(String key) {
         UiCapabilitySnapshot capabilities = capabilityResolver.resolveCurrentSubjectCapabilities();
         return switch (key) {
+            case "dashboard" -> dashboardScreen(capabilities);
+            case "commercialDashboard" -> commercialDashboardScreen(capabilities);
             case "customers" -> crmScreen("customers", "Customers", "CUSTOMER", "ACTIVE", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
             case "leads" -> crmScreen("leads", "Leads", "LEAD", "NEW", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
             case "suppliers" -> crmScreen("suppliers", "Suppliers", "SUPPLIER", "ACTIVE", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
@@ -65,6 +83,206 @@ public class UiSchemaService {
             case "profile" -> profileScreen();
             default -> throw new NotFoundException("UI screen not found: " + key);
         };
+    }
+
+
+    private static UiScreen dashboardScreen(UiCapabilitySnapshot capabilities) {
+        UiResourceCapabilities crmCapabilities = capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER);
+        return new UiScreen(
+                "dashboard",
+                "Dashboard",
+                "DASHBOARD",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                UiScreenLayout.dashboard(List.of(
+                        UiLayoutSection.of("overview", "Overview", "dashboard.sections.overview", 1, List.of(
+                                widget("overviewKpis", "kpiGrid", "Overview", "dashboard.sections.overview")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("kpis")
+                                        .columns(4)
+                                        .build()
+                        )),
+                        UiLayoutSection.of("crmInsights", "CRM insights", "dashboard.sections.crmInsights", 2, List.of(
+                                widget("crmMix", "barChart", "CRM mix", "dashboard.charts.crmMix.title")
+                                        .description("Business partners grouped by type.")
+                                        .descriptionKey("dashboard.charts.crmMix.description")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("businessPartnersByKind")
+                                        .bindings(chartBindings("label", "value"))
+                                        .columns(1)
+                                        .build(),
+                                widget("leadsBySource", "barChart", "Leads by source", "dashboard.charts.leadsBySource.title")
+                                        .description("Lead count grouped by marketing source.")
+                                        .descriptionKey("dashboard.charts.leadsBySource.description")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("leadsByMarketingSource")
+                                        .bindings(chartBindings("label", "value"))
+                                        .columns(1)
+                                        .build(),
+                                widget("status", "barChart", "Status", "dashboard.charts.status.title")
+                                        .description("Business partners grouped by lifecycle status.")
+                                        .descriptionKey("dashboard.charts.status.description")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("businessPartnersByStatus")
+                                        .bindings(chartBindings("label", "value"))
+                                        .columns(1)
+                                        .build(),
+                                widget("newByMonth", "lineChart", "New business partners", "dashboard.charts.newByMonth.title")
+                                        .description("New business partners created by month.")
+                                        .descriptionKey("dashboard.charts.newByMonth.description")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("newBusinessPartnersByMonth")
+                                        .bindings(chartBindings("month", "value"))
+                                        .columns(1)
+                                        .build()
+                        )),
+                        UiLayoutSection.of("relationships", "Relationships", "dashboard.sections.relationships", 2, List.of(
+                                widget("contactsByRole", "barChart", "Contacts by role", "dashboard.charts.contactsByRole.title")
+                                        .description("Contact persons grouped by role.")
+                                        .descriptionKey("dashboard.charts.contactsByRole.description")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("contactPersonsByRole")
+                                        .bindings(chartBindings("label", "value"))
+                                        .columns(1)
+                                        .build(),
+                                widget("contactCoverage", "barChart", "Contact coverage", "dashboard.charts.contactCoverage.title")
+                                        .description("Business partners with contact person coverage by type.")
+                                        .descriptionKey("dashboard.charts.contactCoverage.description")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("contactCoverageByKind")
+                                        .bindings(chartBindings("label", "value"))
+                                        .columns(1)
+                                        .build()
+                        )),
+                        UiLayoutSection.of("recent", "Recent business partners", "dashboard.recent.title", 1, List.of(
+                                widget("recentBusinessPartners", "table", "Recent business partners", "dashboard.recent.title")
+                                        .description("Recently created business partners.")
+                                        .descriptionKey("dashboard.recent.eyebrow")
+                                        .dataSource(ANALYTICS_DASHBOARD)
+                                        .dataPath("recentBusinessPartners")
+                                        .columns(1)
+                                        .tableColumns(List.of(
+                                                UiWidgetTableColumn.of("kind", "Type", "report.columns.type", "translated"),
+                                                UiWidgetTableColumn.of("code", "Code", "schema.field.code", "code"),
+                                                UiWidgetTableColumn.of("name", "Name", "schema.field.name", "sourceText"),
+                                                UiWidgetTableColumn.of("status", "Status", "schema.field.statusCode", "translated"),
+                                                UiWidgetTableColumn.of("marketingSource", "Marketing source", "report.columns.marketingSource", "sourceText")
+                                        ))
+                                        .build()
+                        ))
+                )),
+                List.of(),
+                List.of(),
+                List.of(),
+                crmCapabilities
+        );
+    }
+
+
+    private static UiScreen commercialDashboardScreen(UiCapabilitySnapshot capabilities) {
+        UiResourceCapabilities dashboardCapabilities = capabilities.resource(UiResourceKeys.DASHBOARD_COMMERCIAL);
+        UiCapabilityReference dashboardRead = capability(UiResourceKeys.DASHBOARD_COMMERCIAL, UiCapabilityKeys.READ);
+        UiCapabilityReference financialRead = capability(UiResourceKeys.DASHBOARD_COMMERCIAL_FINANCIALS, UiCapabilityKeys.READ);
+
+        UiWidget summaryKpis = widget("commercialSummaryKpis", "kpiGrid", "Commercial overview", "commercialDashboard.sections.overview")
+                .dataSource(COMMERCIAL_DASHBOARD_SUMMARY)
+                .dataPath("kpis")
+                .columns(4)
+                .requiredCapability(financialRead)
+                .visible(capabilities.allows(financialRead))
+                .build();
+
+        return new UiScreen(
+                "commercialDashboard",
+                "Commercial Dashboard",
+                "DASHBOARD",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                UiScreenLayout.dashboard(List.of(
+                        UiLayoutSection.of("commercialOverview", "Commercial overview", "commercialDashboard.sections.overview", 1, List.of(
+                                summaryKpis
+                        )),
+                        UiLayoutSection.of("salesPerformance", "Sales performance", "commercialDashboard.sections.salesPerformance", 2, List.of(
+                                widget("commercialSalesTrend", "lineChart", "Sales trend", "commercialDashboard.charts.salesTrend.title")
+                                        .description("Monthly sales amount from SAP Business One invoices.")
+                                        .descriptionKey("commercialDashboard.charts.salesTrend.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_SALES_TREND)
+                                        .bindings(chartBindings("period", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build(),
+                                widget("commercialSalesByDocumentType", "barChart", "Sales by document type", "commercialDashboard.charts.salesByDocumentType.title")
+                                        .description("Commercial document totals grouped by document type.")
+                                        .descriptionKey("commercialDashboard.charts.salesByDocumentType.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_SALES_BY_DOCUMENT_TYPE)
+                                        .bindings(chartBindings("documentType", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build()
+                        )),
+                        UiLayoutSection.of("commercialRankings", "Rankings", "commercialDashboard.sections.rankings", 2, List.of(
+                                widget("commercialTopSellingItems", "barChart", "Best-selling items", "commercialDashboard.charts.topSellingItems.title")
+                                        .description("Items ranked by invoice net amount.")
+                                        .descriptionKey("commercialDashboard.charts.topSellingItems.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_TOP_SELLING_ITEMS)
+                                        .bindings(chartBindings("itemName", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build(),
+                                widget("commercialTopCustomers", "barChart", "Top customers", "commercialDashboard.charts.topCustomers.title")
+                                        .description("Customers ranked by invoice amount.")
+                                        .descriptionKey("commercialDashboard.charts.topCustomers.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_TOP_CUSTOMERS)
+                                        .bindings(chartBindings("businessPartnerName", "netAmount"))
+                                        .columns(1)
+                                        .requiredCapability(dashboardRead)
+                                        .visible(capabilities.allows(dashboardRead))
+                                        .build()
+                        )),
+                        UiLayoutSection.of("commercialReceivables", "Receivables", "commercialDashboard.sections.receivables", 2, List.of(
+                                widget("commercialInvoiceAging", "barChart", "Invoice aging", "commercialDashboard.charts.invoiceAging.title")
+                                        .description("Open invoice amount grouped by aging bucket.")
+                                        .descriptionKey("commercialDashboard.charts.invoiceAging.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_INVOICE_AGING)
+                                        .bindings(chartBindings("bucket", "openAmount"))
+                                        .columns(1)
+                                        .requiredCapability(financialRead)
+                                        .visible(capabilities.allows(financialRead))
+                                        .build(),
+                                widget("commercialUnpaidInvoices", "table", "Customers with unpaid invoices", "commercialDashboard.tables.unpaidInvoices.title")
+                                        .description("Customers ranked by open invoice amount.")
+                                        .descriptionKey("commercialDashboard.tables.unpaidInvoices.description")
+                                        .dataSource(COMMERCIAL_DASHBOARD_UNPAID_INVOICES)
+                                        .columns(1)
+                                        .requiredCapability(financialRead)
+                                        .visible(capabilities.allows(financialRead))
+                                        .tableColumns(List.of(
+                                                UiWidgetTableColumn.of("businessPartnerName", "Customer", "commercialDashboard.columns.customer", "sourceText"),
+                                                UiWidgetTableColumn.of("businessPartnerCode", "Code", "schema.field.code", "code"),
+                                                UiWidgetTableColumn.of("openAmount", "Open amount", "commercialDashboard.columns.openAmount", "number"),
+                                                UiWidgetTableColumn.of("invoiceCount", "Invoices", "commercialDashboard.columns.invoiceCount", "number"),
+                                                UiWidgetTableColumn.of("oldestDueDate", "Oldest due date", "commercialDashboard.columns.oldestDueDate", "date"),
+                                                UiWidgetTableColumn.of("maxOverdueDays", "Max overdue days", "commercialDashboard.columns.maxOverdueDays", "number")
+                                        ))
+                                        .build()
+                        ))
+                )),
+                commercialDashboardFilters(),
+                List.of(),
+                List.of(),
+                dashboardCapabilities
+        );
     }
 
     private UiScreen crmScreen(String key, String title, String kind, String defaultStatus, UiResourceCapabilities capabilities) {
@@ -78,6 +296,8 @@ public class UiSchemaService {
                 "/crm/business-partners/{id}",
                 "/crm/business-partners/{id}",
                 "/crm/business-partners/{id}/documents",
+                null,
+                List.of(),
                 List.of(
                         hidden("kind", kind),
                         select("statusCode", "Status", true, true, true, defaultStatus, STATUS_OPTIONS, requiredSelectHelp("Select the lifecycle status.")),
@@ -110,6 +330,8 @@ public class UiSchemaService {
                 "/marketing/sources/{id}",
                 "/marketing/sources/{id}",
                 "",
+                null,
+                List.of(),
                 List.of(
                         text("code", "Code", true, true, true, validation("text", 2, 64, CODE_PATTERN, CODE_MESSAGE, null, null, "Stable source code. Example: LINKEDIN.")),
                         text("name", "Name", true, true, true, validation("text", 2, 120, null, null, null, null, null)),
@@ -131,6 +353,8 @@ public class UiSchemaService {
                 "",
                 "",
                 "",
+                null,
+                List.of(),
                 List.of(
                         text("firstName", "First name", true, true, true, validation("text", 1, 120, null, null, null, null, null)),
                         text("lastName", "Last name", true, true, true, validation("text", 1, 120, null, null, null, null, null)),
@@ -158,6 +382,8 @@ public class UiSchemaService {
                 "/profile",
                 "",
                 "/profile/image",
+                null,
+                List.of(),
                 List.of(
                         text("username", "Username", false, false, false, true, null, maxText(255)),
                         text("email", "Email", false, true, false, true, null, validation("email", null, 255, null, null, null, null, null)),
@@ -171,6 +397,24 @@ public class UiSchemaService {
                 List.of(),
                 UiResourceCapabilities.empty(PROFILE_RESOURCE)
         );
+    }
+
+    private static List<UiScreenFilter> commercialDashboardFilters() {
+        return List.of(
+                UiScreenFilter.date("from", "From", "dashboard.filters.from"),
+                UiScreenFilter.date("to", "To", "dashboard.filters.to"),
+                UiScreenFilter.select("currency", "Currency", "dashboard.filters.currency", "", List.of("", "CHF", "EUR", "USD")),
+                UiScreenFilter.number("limit", "Top results", "dashboard.filters.limit", "10", 1, 50),
+                UiScreenFilter.select("groupBy", "Group by", "dashboard.filters.groupBy", "MONTH", List.of("MONTH"))
+        );
+    }
+
+    private static UiWidget.Builder widget(String key, String type, String title, String titleKey) {
+        return UiWidget.builder(key, type, title).titleKey(titleKey).visible(true);
+    }
+
+    private static Map<String, String> chartBindings(String labelField, String valueField) {
+        return Map.of("label", labelField, "value", valueField);
     }
 
     private static UiRoute route(String path, String label, String labelKey, String screenKey,

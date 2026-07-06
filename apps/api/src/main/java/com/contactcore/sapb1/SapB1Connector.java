@@ -12,7 +12,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SapB1Connector implements CrmConnector {
-    private static final Set<CrmConnectorCapability> CAPABILITIES = Set.of(CrmConnectorCapability.READ_BUSINESS_PARTNERS);
+    private static final Set<CrmConnectorCapability> CAPABILITIES = Set.of(
+            CrmConnectorCapability.READ_BUSINESS_PARTNERS,
+            CrmConnectorCapability.READ_DOCUMENTS
+    );
 
     private final SapB1SessionProvider sessionProvider;
     private final SapB1BusinessPartnerReader businessPartnerReader;

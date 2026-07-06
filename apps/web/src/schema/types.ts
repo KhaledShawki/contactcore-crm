@@ -59,6 +59,65 @@ export interface UiField {
   validation?: UiValidation | null;
 }
 
+
+export interface UiWidgetDataSource {
+  key: string;
+  endpoint: string;
+  defaultParams?: Record<string, string>;
+}
+
+export interface UiWidgetTableColumn {
+  key: string;
+  title: string;
+  titleKey?: string | null;
+  valueKind?: string | null;
+}
+
+export interface UiWidget {
+  key: string;
+  type: 'kpiGrid' | 'barChart' | 'lineChart' | 'table' | string;
+  title: string;
+  titleKey?: string | null;
+  description?: string | null;
+  descriptionKey?: string | null;
+  dataSource?: UiWidgetDataSource | null;
+  dataPath?: string | null;
+  bindings?: Record<string, string>;
+  format?: string | null;
+  columns?: number;
+  tableColumns?: UiWidgetTableColumn[];
+  requiredCapability?: UiCapabilityReference | null;
+  visible?: boolean;
+}
+
+export interface UiLayoutSection {
+  key: string;
+  title?: string | null;
+  titleKey?: string | null;
+  columns: number;
+  widgets: UiWidget[];
+  requiredCapability?: UiCapabilityReference | null;
+  visible?: boolean;
+}
+
+export interface UiScreenLayout {
+  type: 'dashboard' | string;
+  sections: UiLayoutSection[];
+}
+
+export type UiScreenFilterType = 'date' | 'select' | 'number' | string;
+
+export interface UiScreenFilter {
+  key: string;
+  type: UiScreenFilterType;
+  label: string;
+  labelKey?: string | null;
+  defaultValue?: string | null;
+  options?: string[];
+  min?: number | null;
+  max?: number | null;
+}
+
 export interface UiScreen {
   key: string;
   title: string;
@@ -69,6 +128,8 @@ export interface UiScreen {
   updateEndpoint: string;
   archiveEndpoint: string;
   documentEndpoint: string;
+  layout?: UiScreenLayout | null;
+  filters?: UiScreenFilter[];
   fields: UiField[];
   validationRules?: UiFormRule[];
   capabilities?: UiResourceCapabilities | null;

@@ -7,6 +7,8 @@ public final class UiResourceKeys {
     public static final String CRM_BUSINESS_PARTNER = "crm.businessPartner";
     public static final String COMMERCIAL_DOCUMENT = "commercial.document";
     public static final String COMMERCIAL_ITEM = "commercial.item";
+    public static final String DASHBOARD_COMMERCIAL = "dashboard.commercial";
+    public static final String DASHBOARD_COMMERCIAL_FINANCIALS = "dashboard.commercialFinancials";
     public static final String STORAGE_BUSINESS_DOCUMENT = "storage.businessDocument";
     public static final String STORAGE_PROFILE_IMAGE = "storage.profileImage";
     public static final String CONNECTOR_INSTANCE = "connector.instance";

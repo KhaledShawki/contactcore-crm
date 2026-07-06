@@ -10,6 +10,8 @@ import com.contactcore.connector.security.ConnectorIamActions;
 import com.contactcore.connector.security.ConnectorIamResources;
 import com.contactcore.crm.security.CrmIamActions;
 import com.contactcore.crm.security.CrmIamResources;
+import com.contactcore.dashboard.security.DashboardIamActions;
+import com.contactcore.dashboard.security.DashboardIamResources;
 import com.contactcore.iam.security.IamManagementActions;
 import com.contactcore.iam.security.IamManagementResources;
 import com.contactcore.schema.security.SchemaIamActions;
@@ -41,6 +43,8 @@ public class UiCapabilityCatalog {
                 definition(UiResourceKeys.COMMERCIAL_ITEM, UiCapabilityKeys.READ, CommercialIamActions.READ_ITEM, CommercialIamResources.items(tenantId)),
                 definition(UiResourceKeys.COMMERCIAL_ITEM, UiCapabilityKeys.SYNC, CommercialIamActions.SYNC_ITEMS, CommercialIamResources.items(tenantId)),
 
+                definition(UiResourceKeys.DASHBOARD_COMMERCIAL, UiCapabilityKeys.READ, DashboardIamActions.READ_COMMERCIAL_DASHBOARD, DashboardIamResources.commercialDashboard(tenantId)),
+                definition(UiResourceKeys.DASHBOARD_COMMERCIAL_FINANCIALS, UiCapabilityKeys.READ, DashboardIamActions.READ_COMMERCIAL_FINANCIALS, DashboardIamResources.commercialFinancials(tenantId)),
 
                 definition(UiResourceKeys.STORAGE_BUSINESS_DOCUMENT, UiCapabilityKeys.READ, StorageIamActions.READ_OBJECT, StorageIamResources.businessPartnerDocuments(tenantId)),
                 definition(UiResourceKeys.STORAGE_BUSINESS_DOCUMENT, UiCapabilityKeys.UPLOAD, StorageIamActions.UPLOAD_OBJECT, StorageIamResources.businessPartnerDocuments(tenantId)),
