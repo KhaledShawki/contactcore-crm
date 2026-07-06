@@ -3,6 +3,7 @@
 package com.contactcore.connector.api;
 
 import com.contactcore.connector.application.ConnectorSessionService;
+import com.contactcore.connector.security.ConnectorAuthorizationGuard;
 import com.contactcore.security.application.UserPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -19,25 +20,30 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/connectors/session")
 public class ConnectorSessionController {
     private final ConnectorSessionService sessions;
+    private final ConnectorAuthorizationGuard authorization;
 
-    public ConnectorSessionController(ConnectorSessionService sessions) {
+    public ConnectorSessionController(ConnectorSessionService sessions, ConnectorAuthorizationGuard authorization) {
         this.sessions = sessions;
+        this.authorization = authorization;
     }
 
     @GetMapping
     public ConnectorSessionResponse status(@AuthenticationPrincipal UserPrincipal principal) {
+        authorization.requireReadSession();
         return sessions.status(principal.id());
     }
 
     @PostMapping
     public ConnectorSessionResponse login(@AuthenticationPrincipal UserPrincipal principal,
                                           @Valid @RequestBody ConnectorLoginRequest request) {
+        authorization.requireConnectSession(request.connectorInstanceId());
         return sessions.login(principal.id(), request);
     }
 
     @DeleteMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void disconnect(@AuthenticationPrincipal UserPrincipal principal) {
+        authorization.requireDisconnectSession();
         sessions.disconnect(principal.id());
     }
 }

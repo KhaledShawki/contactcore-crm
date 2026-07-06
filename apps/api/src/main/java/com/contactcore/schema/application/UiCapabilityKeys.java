@@ -10,6 +10,8 @@ public final class UiCapabilityKeys {
     public static final String DELETE = "delete";
     public static final String EXPORT = "export";
     public static final String SYNC = "sync";
+    public static final String CONNECT = "connect";
+    public static final String DISCONNECT = "disconnect";
     public static final String CONFIGURE = "configure";
     public static final String START_SYNC = "startSync";
     public static final String ASK = "ask";

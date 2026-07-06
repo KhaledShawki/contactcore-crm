@@ -40,6 +40,10 @@ public class UiCapabilityCatalog {
                 definition(UiResourceKeys.COMMERCIAL_ITEM, UiCapabilityKeys.SYNC, CommercialIamActions.SYNC_ITEMS, CommercialIamResources.items(tenantId)),
 
                 definition(UiResourceKeys.CONNECTOR_INSTANCE, UiCapabilityKeys.READ, ConnectorIamActions.READ, ConnectorIamResources.instances(tenantId)),
+                definition(UiResourceKeys.CONNECTOR_SESSION, UiCapabilityKeys.READ, ConnectorIamActions.READ, ConnectorIamResources.sessions(tenantId)),
+                definition(UiResourceKeys.CONNECTOR_SESSION, UiCapabilityKeys.CONNECT, ConnectorIamActions.CONNECT_SESSION, ConnectorIamResources.sessions(tenantId)),
+                definition(UiResourceKeys.CONNECTOR_SESSION, UiCapabilityKeys.DISCONNECT, ConnectorIamActions.DISCONNECT_SESSION, ConnectorIamResources.sessions(tenantId)),
+                definition(UiResourceKeys.CONNECTOR_BUSINESS_PARTNER, UiCapabilityKeys.READ, ConnectorIamActions.READ_BUSINESS_PARTNERS, ConnectorIamResources.businessPartners(tenantId)),
                 definition(UiResourceKeys.CONNECTOR_INSTANCE, UiCapabilityKeys.CONFIGURE, ConnectorIamActions.CONFIGURE, ConnectorIamResources.instances(tenantId)),
                 definition(UiResourceKeys.CONNECTOR_INSTANCE, UiCapabilityKeys.START_SYNC, ConnectorIamActions.START_SYNC, ConnectorIamResources.instances(tenantId)),
 

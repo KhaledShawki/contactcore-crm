@@ -62,6 +62,7 @@ public final class ManagedIamPolicies {
                                 CommercialIamResources.documents(tenantId),
                                 CommercialIamResources.items(tenantId),
                                 ConnectorIamResources.instances(tenantId),
+                                ConnectorIamResources.sessions(tenantId),
                                 AssistantIamResources.sessions(tenantId),
                                 AssistantIamResources.commercialTools(tenantId)
                         )
@@ -142,6 +143,9 @@ public final class ManagedIamPolicies {
                         "AllowConnectorAdministration",
                         List.of(
                                 ConnectorIamActions.READ,
+                                ConnectorIamActions.CONNECT_SESSION,
+                                ConnectorIamActions.DISCONNECT_SESSION,
+                                ConnectorIamActions.READ_BUSINESS_PARTNERS,
                                 ConnectorIamActions.CONFIGURE,
                                 ConnectorIamActions.START_SYNC,
                                 CommercialIamActions.SYNC_DOCUMENTS,
@@ -149,6 +153,8 @@ public final class ManagedIamPolicies {
                         ),
                         List.of(
                                 ConnectorIamResources.instances(tenantId),
+                                ConnectorIamResources.sessions(tenantId),
+                                ConnectorIamResources.businessPartners(tenantId),
                                 CommercialIamResources.documents(tenantId),
                                 CommercialIamResources.items(tenantId)
                         )
