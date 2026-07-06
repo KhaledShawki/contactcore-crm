@@ -11,6 +11,7 @@ const ar = {
   'common.actions.upload': 'رفع',
   'common.empty.none': 'لا يوجد',
   'common.empty.noRecords': 'لم يتم العثور على سجلات.',
+  'common.errors.forbidden': 'ليست لديك صلاحية لتنفيذ هذا الإجراء.',
   'common.loading.default': 'جارٍ التحميل...',
   'common.status.refreshing': 'جارٍ التحديث',
   'common.user': 'المستخدم',

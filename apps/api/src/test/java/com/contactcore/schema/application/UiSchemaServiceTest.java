@@ -9,13 +9,32 @@ import static org.mockito.Mockito.when;
 
 import com.contactcore.crm.domain.LeadSource;
 import com.contactcore.crm.domain.LeadSourceRepository;
+import com.contactcore.schema.api.UiResourceCapabilities;
 import com.contactcore.shared.api.NotFoundException;
 import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class UiSchemaServiceTest {
     private final LeadSourceRepository leadSources = mock(LeadSourceRepository.class);
-    private final UiSchemaService service = new UiSchemaService(leadSources);
+    private final UiCapabilityResolver capabilityResolver = mock(UiCapabilityResolver.class);
+    private final UiSchemaService service = new UiSchemaService(leadSources, capabilityResolver);
+
+    @BeforeEach
+    void setUpCapabilities() {
+        when(capabilityResolver.resolveCurrentSubjectCapabilities()).thenReturn(new UiCapabilitySnapshot(List.of(
+                new UiResourceCapabilities(UiResourceKeys.CRM_BUSINESS_PARTNER, Map.of(
+                        UiCapabilityKeys.LIST, true,
+                        UiCapabilityKeys.READ, true,
+                        UiCapabilityKeys.CREATE, true,
+                        UiCapabilityKeys.UPDATE, true,
+                        UiCapabilityKeys.DELETE, false,
+                        UiCapabilityKeys.EXPORT, false
+                )),
+                new UiResourceCapabilities(UiResourceKeys.ASSISTANT_SESSION, Map.of(UiCapabilityKeys.ASK, true))
+        )));
+    }
 
     @Test
     void customerScreenCarriesEntityKindDefaultsAndSchemaOnlyFields() {
@@ -24,6 +43,8 @@ class UiSchemaServiceTest {
         var screen = service.screen("customers");
 
         assertThat(screen.entityKind()).isEqualTo("CUSTOMER");
+        assertThat(screen.capabilities().resourceKey()).isEqualTo(UiResourceKeys.CRM_BUSINESS_PARTNER);
+        assertThat(screen.capabilities().allows(UiCapabilityKeys.CREATE)).isTrue();
         assertThat(screen.fields()).anySatisfy(field -> {
             assertThat(field.key()).isEqualTo("kind");
             assertThat(field.defaultValue()).isEqualTo("CUSTOMER");
@@ -42,13 +63,40 @@ class UiSchemaServiceTest {
     }
 
     @Test
-    void manifestIncludesDashboardMarketingSourcesAndReports() {
+    void manifestIncludesPolicyAwareRoutesAndCapabilityMetadata() {
         var manifest = service.manifest();
 
         assertThat(manifest.routes()).extracting(route -> route.path())
                 .contains("/dashboard", "/marketing-sources", "/reports", "/settings");
+        assertThat(manifest.routes()).anySatisfy(route -> {
+            assertThat(route.path()).isEqualTo("/customers");
+            assertThat(route.requiredCapability().resourceKey()).isEqualTo(UiResourceKeys.CRM_BUSINESS_PARTNER);
+            assertThat(route.visible()).isTrue();
+        });
+        assertThat(manifest.capabilities()).anySatisfy(capabilitySet -> {
+            assertThat(capabilitySet.resourceKey()).isEqualTo(UiResourceKeys.CRM_BUSINESS_PARTNER);
+            assertThat(capabilitySet.allows(UiCapabilityKeys.DELETE)).isFalse();
+        });
     }
 
+    @Test
+    void manifestCanHideRoutesWhenRequiredCapabilityIsDenied() {
+        when(capabilityResolver.resolveCurrentSubjectCapabilities()).thenReturn(new UiCapabilitySnapshot(List.of(
+                new UiResourceCapabilities(UiResourceKeys.CRM_BUSINESS_PARTNER, Map.of(UiCapabilityKeys.LIST, false)),
+                new UiResourceCapabilities(UiResourceKeys.ASSISTANT_SESSION, Map.of(UiCapabilityKeys.ASK, false))
+        )));
+
+        var manifest = service.manifest();
+
+        assertThat(manifest.routes()).anySatisfy(route -> {
+            assertThat(route.path()).isEqualTo("/customers");
+            assertThat(route.visible()).isFalse();
+        });
+        assertThat(manifest.routes()).anySatisfy(route -> {
+            assertThat(route.path()).isEqualTo("/dashboard");
+            assertThat(route.visible()).isTrue();
+        });
+    }
 
     @Test
     void screenCarriesSchemaLevelValidationMetadata() {

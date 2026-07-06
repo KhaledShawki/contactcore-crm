@@ -3,9 +3,11 @@
 package com.contactcore.schema.application;
 
 import com.contactcore.crm.domain.LeadSourceRepository;
+import com.contactcore.schema.api.UiCapabilityReference;
 import com.contactcore.schema.api.UiField;
 import com.contactcore.schema.api.UiFormRule;
 import com.contactcore.schema.api.UiManifest;
+import com.contactcore.schema.api.UiResourceCapabilities;
 import com.contactcore.schema.api.UiRoute;
 import com.contactcore.schema.api.UiScreen;
 import com.contactcore.schema.api.UiValidation;
@@ -26,39 +28,46 @@ public class UiSchemaService {
     private static final List<String> LOCALE_OPTIONS = List.of("en", "de", "ar");
     private static final List<String> TIMEZONE_OPTIONS = List.of("Europe/Berlin", "Europe/Zurich", "UTC");
 
-    private final LeadSourceRepository leadSources;
+    private static final String MARKETING_SOURCE_RESOURCE = "marketing.source";
+    private static final String PROFILE_RESOURCE = "profile.user";
 
-    public UiSchemaService(LeadSourceRepository leadSources) {
+    private final LeadSourceRepository leadSources;
+    private final UiCapabilityResolver capabilityResolver;
+
+    public UiSchemaService(LeadSourceRepository leadSources, UiCapabilityResolver capabilityResolver) {
         this.leadSources = leadSources;
+        this.capabilityResolver = capabilityResolver;
     }
 
     public UiManifest manifest() {
+        UiCapabilitySnapshot capabilities = capabilityResolver.resolveCurrentSubjectCapabilities();
         return new UiManifest("ContactCore CRM", List.of(
-                new UiRoute("/dashboard", "Dashboard", "navigation.dashboard", "dashboard"),
-                new UiRoute("/customers", "Customers", "navigation.customers", "customers"),
-                new UiRoute("/leads", "Leads", "navigation.leads", "leads"),
-                new UiRoute("/suppliers", "Suppliers", "navigation.suppliers", "suppliers"),
-                new UiRoute("/marketing-sources", "Marketing Sources", "navigation.marketingSources", "marketingSources"),
-                new UiRoute("/reports", "Reports", "navigation.reports", "reports"),
-                new UiRoute("/assistant", "Assistant", "navigation.assistant", "assistant"),
-                new UiRoute("/settings", "Settings", "navigation.settings", "settings"),
-                new UiRoute("/profile", "Profile", "navigation.profile", "profile")
-        ));
+                route("/dashboard", "Dashboard", "navigation.dashboard", "dashboard", null, capabilities),
+                route("/customers", "Customers", "navigation.customers", "customers", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
+                route("/leads", "Leads", "navigation.leads", "leads", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
+                route("/suppliers", "Suppliers", "navigation.suppliers", "suppliers", capability(UiResourceKeys.CRM_BUSINESS_PARTNER, UiCapabilityKeys.LIST), capabilities),
+                route("/marketing-sources", "Marketing Sources", "navigation.marketingSources", "marketingSources", null, capabilities),
+                route("/reports", "Reports", "navigation.reports", "reports", null, capabilities),
+                route("/assistant", "Assistant", "navigation.assistant", "assistant", capability(UiResourceKeys.ASSISTANT_SESSION, UiCapabilityKeys.ASK), capabilities),
+                route("/settings", "Settings", "navigation.settings", "settings", null, capabilities),
+                route("/profile", "Profile", "navigation.profile", "profile", null, capabilities)
+        ), capabilities.asList());
     }
 
     public UiScreen screen(String key) {
+        UiCapabilitySnapshot capabilities = capabilityResolver.resolveCurrentSubjectCapabilities();
         return switch (key) {
-            case "customers" -> crmScreen("customers", "Customers", "CUSTOMER", "ACTIVE");
-            case "leads" -> crmScreen("leads", "Leads", "LEAD", "NEW");
-            case "suppliers" -> crmScreen("suppliers", "Suppliers", "SUPPLIER", "ACTIVE");
+            case "customers" -> crmScreen("customers", "Customers", "CUSTOMER", "ACTIVE", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
+            case "leads" -> crmScreen("leads", "Leads", "LEAD", "NEW", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
+            case "suppliers" -> crmScreen("suppliers", "Suppliers", "SUPPLIER", "ACTIVE", capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
             case "marketingSources" -> marketingSourceScreen();
-            case "contactPersons" -> contactPersonScreen();
+            case "contactPersons" -> contactPersonScreen(capabilities.resource(UiResourceKeys.CRM_BUSINESS_PARTNER));
             case "profile" -> profileScreen();
             default -> throw new NotFoundException("UI screen not found: " + key);
         };
     }
 
-    private UiScreen crmScreen(String key, String title, String kind, String defaultStatus) {
+    private UiScreen crmScreen(String key, String title, String kind, String defaultStatus, UiResourceCapabilities capabilities) {
         return new UiScreen(
                 key,
                 title,
@@ -85,7 +94,8 @@ public class UiSchemaService {
                         text("countryCode", "Country code", false, true, true, validation("text", null, 2, COUNTRY_CODE_PATTERN, COUNTRY_CODE_MESSAGE, null, null, "Two-letter ISO code.")),
                         textarea("notes", "Notes", false, false, true, validation("textarea", null, 5000, null, null, null, null, null))
                 ),
-                List.of()
+                List.of(),
+                capabilities
         );
     }
 
@@ -105,11 +115,12 @@ public class UiSchemaService {
                         text("name", "Name", true, true, true, validation("text", 2, 120, null, null, null, null, null)),
                         number("sortOrder", "Sort order", false, true, true, validation("number", null, null, null, null, 0, 10000, "Lower values appear first."))
                 ),
-                List.of()
+                List.of(),
+                UiResourceCapabilities.empty(MARKETING_SOURCE_RESOURCE)
         );
     }
 
-    private static UiScreen contactPersonScreen() {
+    private static UiScreen contactPersonScreen(UiResourceCapabilities capabilities) {
         return new UiScreen(
                 "contactPersons",
                 "Contact Persons",
@@ -131,7 +142,8 @@ public class UiSchemaService {
                         checkbox("primaryContact", "Primary contact", false, false, true, UiValidation.none()),
                         textarea("notes", "Notes", false, false, true, validation("textarea", null, 5000, null, null, null, null, null))
                 ),
-                List.of(new UiFormRule("atLeastOne", List.of("email", "phone", "mobile"), "Add at least one email, phone, or mobile number."))
+                List.of(new UiFormRule("atLeastOne", List.of("email", "phone", "mobile"), "Add at least one email, phone, or mobile number.")),
+                capabilities
         );
     }
 
@@ -156,8 +168,18 @@ public class UiSchemaService {
                         select("timezone", "Timezone", true, false, true, "Europe/Berlin", TIMEZONE_OPTIONS, requiredSelectHelp("Used for date and time display.")),
                         textarea("bio", "Bio", false, false, true, validation("textarea", null, 5000, null, null, null, null, null))
                 ),
-                List.of()
+                List.of(),
+                UiResourceCapabilities.empty(PROFILE_RESOURCE)
         );
+    }
+
+    private static UiRoute route(String path, String label, String labelKey, String screenKey,
+                                 UiCapabilityReference requiredCapability, UiCapabilitySnapshot capabilities) {
+        return new UiRoute(path, label, labelKey, screenKey, requiredCapability, capabilities.allows(requiredCapability));
+    }
+
+    private static UiCapabilityReference capability(String resourceKey, String capability) {
+        return UiCapabilityReference.of(resourceKey, capability);
     }
 
     private List<String> marketingSourceOptions() {

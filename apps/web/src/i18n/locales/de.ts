@@ -11,6 +11,7 @@ const de = {
   'common.actions.upload': 'Hochladen',
   'common.empty.none': 'Keine',
   'common.empty.noRecords': 'Keine Datensätze gefunden.',
+  'common.errors.forbidden': 'Sie haben keine Berechtigung für diese Aktion.',
   'common.loading.default': 'Laden...',
   'common.status.refreshing': 'Aktualisieren',
   'common.user': 'Benutzer',

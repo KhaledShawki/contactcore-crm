@@ -21,6 +21,7 @@ import { applyUiSettings } from '../theme/themeSlice';
 import ConnectorSessionPanel from '../connectors/ConnectorSessionPanel';
 import LanguageSelector from '../i18n/LanguageSelector';
 import { useLocale } from '../i18n/LocaleProvider';
+import { routeIsVisible } from '../schema/capabilities';
 
 export default function AppShell() {
   const { t } = useLocale();
@@ -37,7 +38,8 @@ export default function AppShell() {
     }
   }, [dispatch, uiSettings]);
 
-  const activeRoute = manifest?.routes.find((route) => pathname === route.path || pathname.startsWith(`${route.path}/`));
+  const visibleRoutes = manifest?.routes.filter(routeIsVisible) ?? [];
+  const activeRoute = visibleRoutes.find((route) => pathname === route.path || pathname.startsWith(`${route.path}/`));
   const activeRouteLabel = activeRoute ? t(activeRoute.labelKey ?? `navigation.${activeRoute.screenKey}`, undefined) : t('layout.topbar.workspace');
 
   if (isLoading) return <LoadingState />;
@@ -45,7 +47,7 @@ export default function AppShell() {
 
   const nav = (
     <nav className="sidebar-nav" aria-label={t('layout.navigation.main')}>
-      {manifest.routes.map((route) => (
+      {visibleRoutes.map((route) => (
         <NavLink key={route.path} to={route.path} onClick={() => setMobileNavOpen(false)}>
           <span className="nav-dot" aria-hidden="true" />
           <span>{t(route.labelKey ?? `navigation.${route.screenKey}`)}</span>

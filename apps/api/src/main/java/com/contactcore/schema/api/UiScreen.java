@@ -15,5 +15,6 @@ public record UiScreen(
         String archiveEndpoint,
         String documentEndpoint,
         List<UiField> fields,
-        List<UiFormRule> validationRules
+        List<UiFormRule> validationRules,
+        UiResourceCapabilities capabilities
 ) {}

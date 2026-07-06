@@ -20,6 +20,7 @@ import { isFormModified } from '../forms/formComparison';
 import { useSingleFlightAction, useSingleFlightByKey } from '../hooks/useSingleFlightAction';
 import { createDefaultRecord, toWritablePayload, type SchemaRecord } from '../schema/schemaValues';
 import { useGetScreenQuery } from '../schema/schemaApi';
+import { hasCapability } from '../schema/capabilities';
 import type { BusinessPartner, UiScreen } from '../schema/types';
 import { useMemo, useState } from 'react';
 import { useNotifications } from '../notifications/useNotifications';
@@ -53,9 +54,12 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
   const entityLabel = singularTitle(t(`navigation.${screen.key}`));
   const currentPayload = useMemo(() => toWritablePayload(screen, formValue), [formValue, screen]);
   const formModified = isFormModified(savedPayload, currentPayload);
+  const canCreate = hasCapability(screen.capabilities, 'create');
+  const canUpdate = hasCapability(screen.capabilities, 'update');
+  const canSave = numericId ? canUpdate : canCreate;
 
   const saveTask = useSingleFlightAction(async () => {
-    if (connectorMode || !formModified) {
+    if (connectorMode || !canSave || !formModified) {
       return;
     }
 
@@ -114,14 +118,14 @@ function SchemaFormEditor({ initialValue, numericId, screen, screenKey, connecto
         onSubmit={() => { void saveTask.run(); }}
         submitLabel={t('common.actions.save')}
         busy={saveBusy}
-        canSubmit={formModified}
+        canSubmit={canSave && formModified}
         submitDisabledReason={t('schema.form.noChanges')}
-        readOnly={connectorMode}
+        readOnly={connectorMode || !canSave}
       />
 
-      {numericId && !connectorMode && <ContactPersonsPanel businessPartnerId={numericId} />}
+      {numericId && !connectorMode && canUpdate && <ContactPersonsPanel businessPartnerId={numericId} />}
 
-      {numericId && !connectorMode && (
+      {numericId && !connectorMode && canUpdate && (
         <section className="documents-panel">
           <header className="subheader">
             <h2>{t('documents.title')}</h2>
@@ -180,6 +184,7 @@ export default function SchemaFormPage({ screenKey }: Props) {
   if (screenLoading || recordLoading) return <LoadingState />;
   if (connectorMode && isNew) return <ErrorState message={t('connectors.mode.recordHint')} />;
   if (screenError || recordError || !screen) return <ErrorState message={t('crm.errors.loadRecord')} />;
+  if (isNew && !hasCapability(screen.capabilities, 'create')) return <ErrorState message={t('common.errors.forbidden')} />;
 
   const editorKey = `${screenKey}:${connectorMode ? recordKey : numericId ?? 'new'}:${record?.externalId ?? record?.id ?? 'default'}`;
 
