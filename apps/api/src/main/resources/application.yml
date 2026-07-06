@@ -65,6 +65,15 @@ contactcore:
     max-profile-image-bytes: ${CONTACTCORE_UPLOAD_MAX_PROFILE_IMAGE_BYTES:5242880}
     max-business-document-bytes: ${CONTACTCORE_UPLOAD_MAX_BUSINESS_DOCUMENT_BYTES:15728640}
 
+  sap-b1:
+    enabled: ${CONTACTCORE_SAP_B1_ENABLED:false}
+    display-name: ${CONTACTCORE_SAP_B1_DISPLAY_NAME:SAP Business One}
+    environment: ${CONTACTCORE_SAP_B1_ENVIRONMENT:TEST}
+    service-layer-base-url: ${CONTACTCORE_SAP_B1_SERVICE_LAYER_BASE_URL:}
+    company-db: ${CONTACTCORE_SAP_B1_COMPANY_DB:}
+    timeout-ms: ${CONTACTCORE_SAP_B1_TIMEOUT_MS:30000}
+    grant-usernames: ${CONTACTCORE_SAP_B1_GRANT_USERNAMES:admin}
+
   assistant:
     enabled: ${CONTACTCORE_ASSISTANT_ENABLED:true}
     provider: ${CONTACTCORE_ASSISTANT_PROVIDER:noop}

@@ -11,6 +11,7 @@ import com.contactcore.schema.api.UiManifest;
 import com.contactcore.schema.api.UiResourceCapabilities;
 import com.contactcore.schema.api.UiRoute;
 import com.contactcore.schema.api.UiScreenLayout;
+import com.contactcore.schema.api.UiScreenFilter;
 import com.contactcore.schema.api.UiWidget;
 import com.contactcore.schema.api.UiWidgetDataSource;
 import com.contactcore.schema.api.UiWidgetTableColumn;
@@ -176,6 +177,7 @@ public class UiSchemaService {
                 )),
                 List.of(),
                 List.of(),
+                List.of(),
                 crmCapabilities
         );
     }
@@ -276,6 +278,7 @@ public class UiSchemaService {
                                         .build()
                         ))
                 )),
+                commercialDashboardFilters(),
                 List.of(),
                 List.of(),
                 dashboardCapabilities
@@ -294,6 +297,7 @@ public class UiSchemaService {
                 "/crm/business-partners/{id}",
                 "/crm/business-partners/{id}/documents",
                 null,
+                List.of(),
                 List.of(
                         hidden("kind", kind),
                         select("statusCode", "Status", true, true, true, defaultStatus, STATUS_OPTIONS, requiredSelectHelp("Select the lifecycle status.")),
@@ -327,6 +331,7 @@ public class UiSchemaService {
                 "/marketing/sources/{id}",
                 "",
                 null,
+                List.of(),
                 List.of(
                         text("code", "Code", true, true, true, validation("text", 2, 64, CODE_PATTERN, CODE_MESSAGE, null, null, "Stable source code. Example: LINKEDIN.")),
                         text("name", "Name", true, true, true, validation("text", 2, 120, null, null, null, null, null)),
@@ -349,6 +354,7 @@ public class UiSchemaService {
                 "",
                 "",
                 null,
+                List.of(),
                 List.of(
                         text("firstName", "First name", true, true, true, validation("text", 1, 120, null, null, null, null, null)),
                         text("lastName", "Last name", true, true, true, validation("text", 1, 120, null, null, null, null, null)),
@@ -377,6 +383,7 @@ public class UiSchemaService {
                 "",
                 "/profile/image",
                 null,
+                List.of(),
                 List.of(
                         text("username", "Username", false, false, false, true, null, maxText(255)),
                         text("email", "Email", false, true, false, true, null, validation("email", null, 255, null, null, null, null, null)),
@@ -392,6 +399,15 @@ public class UiSchemaService {
         );
     }
 
+    private static List<UiScreenFilter> commercialDashboardFilters() {
+        return List.of(
+                UiScreenFilter.date("from", "From", "dashboard.filters.from"),
+                UiScreenFilter.date("to", "To", "dashboard.filters.to"),
+                UiScreenFilter.select("currency", "Currency", "dashboard.filters.currency", "", List.of("", "CHF", "EUR", "USD")),
+                UiScreenFilter.number("limit", "Top results", "dashboard.filters.limit", "10", 1, 50),
+                UiScreenFilter.select("groupBy", "Group by", "dashboard.filters.groupBy", "MONTH", List.of("MONTH"))
+        );
+    }
 
     private static UiWidget.Builder widget(String key, String type, String title, String titleKey) {
         return UiWidget.builder(key, type, title).titleKey(titleKey).visible(true);

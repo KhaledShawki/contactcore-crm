@@ -1718,3 +1718,52 @@ bdi {
     --schema-widget-columns: 1;
   }
 }
+
+.schema-dashboard-page {
+  display: grid;
+  gap: var(--blue-space-6);
+}
+
+.schema-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  gap: var(--blue-space-4);
+  align-items: end;
+  padding: var(--blue-space-5);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--blue-radius-xl);
+  background: var(--blue-surface);
+  box-shadow: var(--blue-shadow-sm);
+}
+
+.schema-widget-state {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  padding: var(--blue-space-6);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--blue-radius-xl);
+  background: var(--blue-surface);
+  box-shadow: var(--blue-shadow-sm);
+  color: var(--blue-text-muted);
+  text-align: center;
+}
+
+.schema-widget-state .blue-alert {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .schema-filter-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .schema-filter-bar {
+    grid-template-columns: 1fr;
+    padding: var(--blue-space-4);
+    border-radius: var(--blue-radius-lg);
+  }
+}

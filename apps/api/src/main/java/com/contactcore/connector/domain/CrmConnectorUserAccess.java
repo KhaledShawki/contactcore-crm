@@ -30,6 +30,19 @@ public class CrmConnectorUserAccess extends BaseEntity {
 
     protected CrmConnectorUserAccess() {}
 
+    public CrmConnectorUserAccess(AppUser user,
+                                  CrmConnectorInstance connectorInstance,
+                                  boolean canReadBusinessPartners) {
+        this.user = user;
+        this.connectorInstance = connectorInstance;
+        this.canReadBusinessPartners = canReadBusinessPartners;
+    }
+
+    public void enableReadBusinessPartners() {
+        enabled = true;
+        canReadBusinessPartners = true;
+    }
+
     public AppUser getUser() {
         return user;
     }

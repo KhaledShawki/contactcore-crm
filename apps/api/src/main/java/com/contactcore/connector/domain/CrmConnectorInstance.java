@@ -43,6 +43,18 @@ public class CrmConnectorInstance extends BaseEntity {
         this.configJson = configJson;
     }
 
+    public void updateBootstrapConfig(String displayName,
+                                      CrmConnectorEnvironment environment,
+                                      String configJson,
+                                      boolean enabled,
+                                      int sortOrder) {
+        this.displayName = displayName;
+        this.environment = environment;
+        this.configJson = configJson;
+        this.enabled = enabled;
+        this.sortOrder = sortOrder;
+    }
+
     public CrmConnectorType getType() {
         return type;
     }

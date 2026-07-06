@@ -4,13 +4,15 @@ import SchemaWidgetRenderer from './SchemaWidgetRenderer';
 import { translatedLabel } from './schemaLabels';
 import { useLocale } from '../i18n/LocaleProvider';
 import type { UiLayoutSection } from '../schema/types';
+import type { SchemaDataSourceEntry } from './useSchemaDataSources';
 
 interface Props {
   section: UiLayoutSection;
   dataSources: Record<string, unknown>;
+  dataSourceEntries: Record<string, SchemaDataSourceEntry>;
 }
 
-export default function SchemaSectionRenderer({ section, dataSources }: Props) {
+export default function SchemaSectionRenderer({ section, dataSources, dataSourceEntries }: Props) {
   const { t } = useLocale();
   if (section.visible === false) return null;
 
@@ -26,7 +28,7 @@ export default function SchemaSectionRenderer({ section, dataSources }: Props) {
       )}
       <div className="schema-widget-grid" data-columns={section.columns}>
         {visibleWidgets.map((widget) => (
-          <SchemaWidgetRenderer key={widget.key} widget={widget} dataSources={dataSources} />
+          <SchemaWidgetRenderer key={widget.key} widget={widget} dataSources={dataSources} dataSourceEntries={dataSourceEntries} />
         ))}
       </div>
     </section>

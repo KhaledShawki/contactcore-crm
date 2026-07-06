@@ -143,6 +143,14 @@ class UiSchemaServiceTest {
         assertThat(screen.capabilities().resourceKey()).isEqualTo(UiResourceKeys.DASHBOARD_COMMERCIAL);
         assertThat(screen.layout().sections()).extracting(section -> section.key())
                 .containsExactly("commercialOverview", "salesPerformance", "commercialRankings", "commercialReceivables");
+        assertThat(screen.filters()).extracting(filter -> filter.key())
+                .containsExactly("from", "to", "currency", "limit", "groupBy");
+        assertThat(screen.filters()).anySatisfy(filter -> {
+            assertThat(filter.key()).isEqualTo("limit");
+            assertThat(filter.defaultValue()).isEqualTo("10");
+            assertThat(filter.min()).isEqualTo(1);
+            assertThat(filter.max()).isEqualTo(50);
+        });
         assertThat(screen.layout().sections()).flatExtracting(section -> section.widgets())
                 .anySatisfy(widget -> {
                     assertThat(widget.key()).isEqualTo("commercialSummaryKpis");

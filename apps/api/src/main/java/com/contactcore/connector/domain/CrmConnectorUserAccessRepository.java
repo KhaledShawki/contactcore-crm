@@ -34,4 +34,14 @@ public interface CrmConnectorUserAccessRepository extends JpaRepository<CrmConne
               and instance.archivedAt is null
             """)
     Optional<CrmConnectorUserAccess> findEnabledAccess(@Param("userId") Long userId, @Param("instanceId") Long instanceId);
+
+    @Query("""
+            select access
+            from CrmConnectorUserAccess access
+            where access.user.id = :userId
+              and access.connectorInstance.id = :instanceId
+              and access.archivedAt is null
+            """)
+    Optional<CrmConnectorUserAccess> findActiveAccess(@Param("userId") Long userId,
+                                                      @Param("instanceId") Long instanceId);
 }

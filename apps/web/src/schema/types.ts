@@ -105,6 +105,19 @@ export interface UiScreenLayout {
   sections: UiLayoutSection[];
 }
 
+export type UiScreenFilterType = 'date' | 'select' | 'number' | string;
+
+export interface UiScreenFilter {
+  key: string;
+  type: UiScreenFilterType;
+  label: string;
+  labelKey?: string | null;
+  defaultValue?: string | null;
+  options?: string[];
+  min?: number | null;
+  max?: number | null;
+}
+
 export interface UiScreen {
   key: string;
   title: string;
@@ -116,6 +129,7 @@ export interface UiScreen {
   archiveEndpoint: string;
   documentEndpoint: string;
   layout?: UiScreenLayout | null;
+  filters?: UiScreenFilter[];
   fields: UiField[];
   validationRules?: UiFormRule[];
   capabilities?: UiResourceCapabilities | null;
