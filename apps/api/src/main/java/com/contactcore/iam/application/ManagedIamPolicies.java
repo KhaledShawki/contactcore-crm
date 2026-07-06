@@ -18,6 +18,8 @@ import com.contactcore.iam.security.IamManagementActions;
 import com.contactcore.iam.security.IamManagementResources;
 import com.contactcore.schema.security.SchemaIamActions;
 import com.contactcore.schema.security.SchemaIamResources;
+import com.contactcore.storage.security.StorageIamActions;
+import com.contactcore.storage.security.StorageIamResources;
 import java.util.List;
 
 public final class ManagedIamPolicies {
@@ -53,6 +55,8 @@ public final class ManagedIamPolicies {
                                 CommercialIamActions.LIST_ITEMS,
                                 CommercialIamActions.READ_ITEM,
                                 ConnectorIamActions.READ,
+                                StorageIamActions.READ_OBJECT,
+                                StorageIamActions.DOWNLOAD_OBJECT,
                                 AssistantIamActions.ASK,
                                 AssistantIamActions.READ_CONVERSATIONS,
                                 AssistantIamActions.USE_CRM_TOOLS,
@@ -65,6 +69,8 @@ public final class ManagedIamPolicies {
                                 CommercialIamResources.items(tenantId),
                                 ConnectorIamResources.instances(tenantId),
                                 ConnectorIamResources.sessions(tenantId),
+                                StorageIamResources.businessPartnerDocuments(tenantId),
+                                StorageIamResources.profileImages(tenantId),
                                 AssistantIamResources.sessions(tenantId),
                                 AssistantIamResources.conversations(tenantId),
                                 AssistantIamResources.crmTools(tenantId),
@@ -84,6 +90,10 @@ public final class ManagedIamPolicies {
                                 CrmIamActions.READ_BUSINESS_PARTNER,
                                 CrmIamActions.CREATE_BUSINESS_PARTNER,
                                 CrmIamActions.UPDATE_BUSINESS_PARTNER,
+                                StorageIamActions.READ_OBJECT,
+                                StorageIamActions.UPLOAD_OBJECT,
+                                StorageIamActions.DOWNLOAD_OBJECT,
+                                StorageIamActions.DELETE_OBJECT,
                                 AssistantIamActions.ASK,
                                 AssistantIamActions.READ_CONVERSATIONS,
                                 AssistantIamActions.ARCHIVE_CONVERSATION,
@@ -92,6 +102,8 @@ public final class ManagedIamPolicies {
                         List.of(
                                 SchemaIamResources.manifest(tenantId),
                                 CrmIamResources.businessPartners(tenantId),
+                                StorageIamResources.businessPartnerDocuments(tenantId),
+                                StorageIamResources.profileImages(tenantId),
                                 AssistantIamResources.sessions(tenantId),
                                 AssistantIamResources.conversations(tenantId),
                                 AssistantIamResources.crmTools(tenantId)
@@ -131,6 +143,10 @@ public final class ManagedIamPolicies {
                                 CommercialIamActions.EXPORT_DOCUMENTS,
                                 CommercialIamActions.LIST_ITEMS,
                                 CommercialIamActions.READ_ITEM,
+                                StorageIamActions.READ_OBJECT,
+                                StorageIamActions.UPLOAD_OBJECT,
+                                StorageIamActions.DOWNLOAD_OBJECT,
+                                StorageIamActions.DELETE_OBJECT,
                                 AssistantIamActions.ASK,
                                 AssistantIamActions.READ_CONVERSATIONS,
                                 AssistantIamActions.ARCHIVE_CONVERSATION,
@@ -143,6 +159,8 @@ public final class ManagedIamPolicies {
                                 CrmIamResources.businessPartners(tenantId),
                                 CommercialIamResources.documents(tenantId),
                                 CommercialIamResources.items(tenantId),
+                                StorageIamResources.businessPartnerDocuments(tenantId),
+                                StorageIamResources.profileImages(tenantId),
                                 AssistantIamResources.sessions(tenantId),
                                 AssistantIamResources.conversations(tenantId),
                                 AssistantIamResources.crmTools(tenantId),

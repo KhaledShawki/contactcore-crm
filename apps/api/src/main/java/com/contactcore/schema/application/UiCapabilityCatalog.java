@@ -14,6 +14,8 @@ import com.contactcore.iam.security.IamManagementActions;
 import com.contactcore.iam.security.IamManagementResources;
 import com.contactcore.schema.security.SchemaIamActions;
 import com.contactcore.schema.security.SchemaIamResources;
+import com.contactcore.storage.security.StorageIamActions;
+import com.contactcore.storage.security.StorageIamResources;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -38,6 +40,16 @@ public class UiCapabilityCatalog {
                 definition(UiResourceKeys.COMMERCIAL_ITEM, UiCapabilityKeys.LIST, CommercialIamActions.LIST_ITEMS, CommercialIamResources.items(tenantId)),
                 definition(UiResourceKeys.COMMERCIAL_ITEM, UiCapabilityKeys.READ, CommercialIamActions.READ_ITEM, CommercialIamResources.items(tenantId)),
                 definition(UiResourceKeys.COMMERCIAL_ITEM, UiCapabilityKeys.SYNC, CommercialIamActions.SYNC_ITEMS, CommercialIamResources.items(tenantId)),
+
+
+                definition(UiResourceKeys.STORAGE_BUSINESS_DOCUMENT, UiCapabilityKeys.READ, StorageIamActions.READ_OBJECT, StorageIamResources.businessPartnerDocuments(tenantId)),
+                definition(UiResourceKeys.STORAGE_BUSINESS_DOCUMENT, UiCapabilityKeys.UPLOAD, StorageIamActions.UPLOAD_OBJECT, StorageIamResources.businessPartnerDocuments(tenantId)),
+                definition(UiResourceKeys.STORAGE_BUSINESS_DOCUMENT, UiCapabilityKeys.DOWNLOAD, StorageIamActions.DOWNLOAD_OBJECT, StorageIamResources.businessPartnerDocuments(tenantId)),
+                definition(UiResourceKeys.STORAGE_BUSINESS_DOCUMENT, UiCapabilityKeys.PREVIEW, StorageIamActions.PREVIEW_OBJECT, StorageIamResources.businessPartnerDocuments(tenantId)),
+                definition(UiResourceKeys.STORAGE_BUSINESS_DOCUMENT, UiCapabilityKeys.DELETE, StorageIamActions.DELETE_OBJECT, StorageIamResources.businessPartnerDocuments(tenantId)),
+
+                definition(UiResourceKeys.STORAGE_PROFILE_IMAGE, UiCapabilityKeys.UPLOAD, StorageIamActions.UPLOAD_OBJECT, StorageIamResources.profileImages(tenantId)),
+                definition(UiResourceKeys.STORAGE_PROFILE_IMAGE, UiCapabilityKeys.DOWNLOAD, StorageIamActions.DOWNLOAD_OBJECT, StorageIamResources.profileImages(tenantId)),
 
                 definition(UiResourceKeys.CONNECTOR_INSTANCE, UiCapabilityKeys.READ, ConnectorIamActions.READ, ConnectorIamResources.instances(tenantId)),
                 definition(UiResourceKeys.CONNECTOR_SESSION, UiCapabilityKeys.READ, ConnectorIamActions.READ, ConnectorIamResources.sessions(tenantId)),

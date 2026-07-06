@@ -3,7 +3,9 @@
 package com.contactcore.storage.api;
 
 import com.contactcore.crm.security.CrmAuthorizationGuard;
+import com.contactcore.storage.application.BusinessPartnerDocumentAccessService;
 import com.contactcore.storage.application.DocumentAttachmentService;
+import com.contactcore.storage.security.StorageAuthorizationGuard;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -21,16 +23,22 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/crm/business-partners")
 public class BusinessPartnerDocumentController {
     private final DocumentAttachmentService service;
-    private final CrmAuthorizationGuard authorization;
+    private final BusinessPartnerDocumentAccessService accessService;
+    private final CrmAuthorizationGuard crmAuthorization;
+    private final StorageAuthorizationGuard storageAuthorization;
 
-    public BusinessPartnerDocumentController(DocumentAttachmentService service, CrmAuthorizationGuard authorization) {
+    public BusinessPartnerDocumentController(DocumentAttachmentService service, BusinessPartnerDocumentAccessService accessService,
+                                             CrmAuthorizationGuard crmAuthorization, StorageAuthorizationGuard storageAuthorization) {
         this.service = service;
-        this.authorization = authorization;
+        this.accessService = accessService;
+        this.crmAuthorization = crmAuthorization;
+        this.storageAuthorization = storageAuthorization;
     }
 
     @GetMapping("/{businessPartnerId}/documents")
     public List<DocumentAttachmentResponse> list(@PathVariable Long businessPartnerId) {
-        authorization.requireReadBusinessPartner(businessPartnerId);
+        crmAuthorization.requireReadBusinessPartner(businessPartnerId);
+        storageAuthorization.requireReadBusinessPartnerDocuments(businessPartnerId);
         return service.listBusinessPartnerDocuments(businessPartnerId);
     }
 
@@ -39,14 +47,17 @@ public class BusinessPartnerDocumentController {
     public DocumentAttachmentResponse upload(@PathVariable Long businessPartnerId,
                                              @RequestParam(value = "documentTypeCode", required = false) String documentTypeCode,
                                              @RequestParam("file") MultipartFile file) throws IOException {
-        authorization.requireManageBusinessPartnerDocuments(businessPartnerId, "uploadDocument");
+        crmAuthorization.requireManageBusinessPartnerDocuments(businessPartnerId, "uploadDocument");
+        storageAuthorization.requireUploadBusinessPartnerDocument(businessPartnerId, documentTypeCode);
         return service.uploadBusinessPartnerDocument(businessPartnerId, documentTypeCode, file);
     }
 
     @DeleteMapping("/documents/{documentId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void archive(@PathVariable Long documentId) {
-        authorization.requireManageBusinessPartnerDocuments("archiveDocument");
+        storageAuthorization.requireDeleteBusinessPartnerDocument(documentId);
+        Long businessPartnerId = accessService.requireActiveBusinessPartnerId(documentId);
+        crmAuthorization.requireManageBusinessPartnerDocuments(businessPartnerId, "archiveDocument");
         service.archiveBusinessPartnerDocument(documentId);
     }
 }

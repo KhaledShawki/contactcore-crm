@@ -8,6 +8,9 @@ public final class UiCapabilityKeys {
     public static final String CREATE = "create";
     public static final String UPDATE = "update";
     public static final String DELETE = "delete";
+    public static final String UPLOAD = "upload";
+    public static final String DOWNLOAD = "download";
+    public static final String PREVIEW = "preview";
     public static final String EXPORT = "export";
     public static final String SYNC = "sync";
     public static final String CONNECT = "connect";
